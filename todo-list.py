@@ -83,20 +83,33 @@ class AllQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
 
 
 class Tab(QtGui.QWidget):
-    def __init__(self, model, filter=None, parent=None):
+    def __init__(self, model, filter=None, name='', parent=None):
         QtGui.QWidget.__init__(self, parent)
         uic.loadUi('tab.ui', self)
+
+        self.name = name
+        self.sourceModel = model
 
         #self.view.viewport().setAutoFillBackground(False)
 
         if filter is None:
-            proxy = AllQSortFilterProxyModel(self)
+            self.model = AllQSortFilterProxyModel(self)
         elif filter == '_ISSUES':
-            proxy = IssueQSortFilterProxyModel(self)
+            self.model = IssueQSortFilterProxyModel(self)
         else:
-            proxy = TagQSortFilterProxyModel(filter, self)
-        proxy.setSourceModel(model)
-        self.view.setModel(proxy)
+            self.model = TagQSortFilterProxyModel(filter, self)
+        self.model.setSourceModel(model)
+        self.view.setModel(self.model)
+
+    def activeCount(self):
+        c = 0
+        for i in range(self.model.rowCount()):
+            index = self.model.index(i, 0)
+            source_index = self.model.mapToSource(index)
+            item = self.sourceModel.item(source_index.row())
+            if item.checkState() != 2 and item.empty is False:
+                c += 1
+        return c
 
 
 class Item(QtGui.QStandardItem):
@@ -146,10 +159,10 @@ class MainWindow(QtGui.QMainWindow):
 
         self.model = QtGui.QStandardItemModel(self)
 
-        all_tab = Tab(self.model, None, self)
+        all_tab = Tab(self.model, None, 'All', self)
         self.tabs.addTab(all_tab, "All")
 
-        issue_tab = Tab(self.model, '_ISSUES', self)
+        issue_tab = Tab(self.model, '_ISSUES', "Issues", self)
         self.tabs.addTab(issue_tab, "Issues")
 
         self.load()
@@ -178,6 +191,7 @@ class MainWindow(QtGui.QMainWindow):
 
         debug(item)
         self.updateMenu()
+        self.updateItemCounters()
 
     def cleanup(self, duration=24*3600):
         for i in reversed(range(self.model.rowCount())):
@@ -207,6 +221,7 @@ class MainWindow(QtGui.QMainWindow):
             print("WARNING: Could not load database from '%s': %s" % (self.database_file, str(e)))
 
         self.updateMenu()
+        self.updateItemCounters()
 
     def store(self):
         json_struct = {'version': "1.0", 'database': [], 'tag_filter': []}
@@ -218,7 +233,7 @@ class MainWindow(QtGui.QMainWindow):
 
         for i in range(self.tabs.count()):
             if i > 1:
-                json_struct['tag_filter'].append(self.tabs.tabText(i))
+                json_struct['tag_filter'].append(self.tabs.widget(i).name)
 
         s = json.dumps(json_struct, sort_keys=True, indent=4, separators=(',', ': '))
         with open(self.database_file, 'w') as f:
@@ -236,8 +251,15 @@ class MainWindow(QtGui.QMainWindow):
             self.menuAdd.addAction(action)
             action.triggered[()].connect(partial(self.addTagTab, tag))
 
+    def updateItemCounters(self):
+        for i in range(self.tabs.count()):
+            c = self.tabs.widget(i).activeCount()
+            n = self.tabs.widget(i).name
+            label = "%s (%d)" % (n, c)
+            self.tabs.setTabText(i, label)
+
     def addTagTab(self, tag):
-        tab = Tab(self.model, tag, self)
+        tab = Tab(self.model, tag, tag, self)
         self.tabs.addTab(tab, tag)
 
     def closeTab(self):
