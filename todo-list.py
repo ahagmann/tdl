@@ -28,6 +28,9 @@ import os
 from functools import partial
 
 
+ROOT = os.path.abspath(os.path.dirname(__file__))
+
+
 def debug(s):
     #print("DEBUG: %s" % s)
     pass
@@ -169,8 +172,13 @@ class MainWindow(QtGui.QMainWindow):
         self.add_empty_item()
 
         self.model.itemChanged.connect(self.on_item_changed)
-        #self.trigger.pressed.connect(partial(self.cleanup, 0))
         self.actionClose.triggered.connect(self.closeTab)
+
+        icon = QtGui.QIcon(os.path.join(ROOT, 'icon.png'))
+        self.sys_tray_icon = QtGui.QSystemTrayIcon(self)
+        self.sys_tray_icon.setIcon(icon)
+        self.sys_tray_icon.setVisible(True)
+        self.sys_tray_icon.activated.connect(self.tray_action)
 
         self.cleanup_timer = QtCore.QTimer(self)
         self.cleanup_timer.setInterval(10 * 60 * 1000)
@@ -270,6 +278,14 @@ class MainWindow(QtGui.QMainWindow):
     def closeEvent(self, event):
         QtGui.QMainWindow.closeEvent(self, event)
         self.store()
+
+    def tray_action(self, reason):
+        if reason == QtGui.QSystemTrayIcon.Trigger:
+            if self.isVisible():
+                self.hide()
+            else:
+                self.setGeometry(self.geometry())
+                self.show()
 
 
 if __name__ == "__main__":
