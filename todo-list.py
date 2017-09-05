@@ -86,12 +86,13 @@ class AllQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
 
 
 class Tab(QtGui.QWidget):
-    def __init__(self, model, filter=None, name='', parent=None):
+    def __init__(self, model, filter, name, issue_link_prefix, parent=None):
         QtGui.QWidget.__init__(self, parent)
         uic.loadUi('tab.ui', self)
 
         self.name = name
         self.sourceModel = model
+        self.issue_link_prefix = issue_link_prefix
 
         #self.view.viewport().setAutoFillBackground(False)
 
@@ -104,6 +105,8 @@ class Tab(QtGui.QWidget):
         self.model.setSourceModel(model)
         self.view.setModel(self.model)
 
+        self.view.customContextMenuRequested.connect(self.openIssue)
+
     def activeCount(self):
         c = 0
         for i in range(self.model.rowCount()):
@@ -113,6 +116,16 @@ class Tab(QtGui.QWidget):
             if item.checkState() != 2 and item.empty is False:
                 c += 1
         return c
+
+    def openIssue(self, pos):
+        if self.issue_link_prefix is not None:
+            index = self.view.indexAt(pos)
+            source_index = self.model.mapToSource(index)
+            item = self.sourceModel.item(source_index.row())
+            if len(item.issues) > 0:
+                issue = item.issues[0]
+                url = QtCore.QUrl(self.issue_link_prefix + issue)
+                QtGui.QDesktopServices.openUrl(url)
 
 
 class Item(QtGui.QStandardItem):
@@ -163,10 +176,10 @@ class MainWindow(QtGui.QMainWindow):
 
         self.model = QtGui.QStandardItemModel(self)
 
-        all_tab = Tab(self.model, None, 'All', self)
+        all_tab = Tab(self.model, None, 'All', self.issue_link_prefix, self)
         self.tabs.addTab(all_tab, "All")
 
-        issue_tab = Tab(self.model, '_ISSUES', "Issues", self)
+        issue_tab = Tab(self.model, '_ISSUES', "Issues", self.issue_link_prefix, self)
         self.tabs.addTab(issue_tab, "Issues")
 
         self.load()
@@ -269,7 +282,7 @@ class MainWindow(QtGui.QMainWindow):
             self.tabs.setTabText(i, label)
 
     def addTagTab(self, tag):
-        tab = Tab(self.model, tag, tag, self)
+        tab = Tab(self.model, tag, tag, self.issue_link_prefix, self)
         self.tabs.addTab(tab, tag)
 
         self.updateItemCounters()
