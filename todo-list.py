@@ -159,6 +159,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.database_file = os.path.expanduser(args.database)
         self.issue_link_prefix = args.issue_link_prefix
+        self.cleanup_time_h = args.cleanup_time
 
         self.model = QtGui.QStandardItemModel(self)
 
@@ -201,7 +202,8 @@ class MainWindow(QtGui.QMainWindow):
         self.updateMenu()
         self.updateItemCounters()
 
-    def cleanup(self, duration=24*3600):
+    def cleanup(self):
+        duration = self.cleanup_time_h * 60 * 60
         for i in reversed(range(self.model.rowCount())):
             item = self.model.item(i)
             if item.done_timestamp:
@@ -295,6 +297,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser("todo-list utility")
     parser.add_argument('--database', default='~/.todo-list.db', help='Database file to load/store')
+    parser.add_argument('--cleanup-time', default=12, type=int, help='Duration in hours after which finished items are removed')
     parser.add_argument('--issue-link-prefix', default=None, help='Prefix for links to bugtracker entries')
 
     args = parser.parse_args()
