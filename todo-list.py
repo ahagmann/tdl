@@ -270,6 +270,8 @@ class MainWindow(QtGui.QMainWindow):
         tab = Tab(self.model, tag, tag, self)
         self.tabs.addTab(tab, tag)
 
+        self.updateItemCounters()
+
     def closeTab(self):
         i = self.tabs.currentIndex()
         if i > 1:
