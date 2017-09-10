@@ -298,11 +298,9 @@ class MainWindow(QtGui.QMainWindow):
 
     def tray_action(self, reason):
         if reason == QtGui.QSystemTrayIcon.Trigger:
-            if self.isVisible():
-                self.hide()
-            else:
-                self.setGeometry(self.geometry())
-                self.show()
+            self.hide()
+            self.setGeometry(self.geometry())
+            self.show()
 
 
 if __name__ == "__main__":
