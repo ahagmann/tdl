@@ -31,6 +31,7 @@ import json
 import os
 from functools import partial
 import signal
+import shutil
 
 
 ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -175,7 +176,9 @@ class MainWindow(QtGui.QMainWindow):
         QtGui.QMainWindow.__init__(self, parent)
         uic.loadUi('mainwindow.ui', self)
 
+        self.do_not_store = False
         self.database_file = os.path.expanduser(args.database)
+        self.database_temp_file = self.database_file + ".tmp"
         self.issue_link_prefix = args.issue_link_prefix
         self.cleanup_time_h = args.cleanup_time
 
@@ -232,6 +235,16 @@ class MainWindow(QtGui.QMainWindow):
         self.store()
 
     def load(self):
+        if os.path.exists(self.database_temp_file):
+            ret = QtGui.QMessageBox.warning(self, "Uups...", "Found a database temp file (%s).\nPress 'Ignore' to continue.\nPress 'Cancel' allows to continue in read only mode, to quit and check and solve this manually." % self.database_temp_file, buttons = QtGui.QMessageBox.Ignore | QtGui.QMessageBox.Cancel)
+            if ret == QtGui.QMessageBox.Cancel:
+                self.do_not_store = True
+
+                p = self.palette()
+                p.setColor(self.backgroundRole(), QtCore.Qt.red)
+                self.setPalette(p)
+                self.setWindowTitle(self.windowTitle() + ' (Read only)')
+
         try:
             s = open(self.database_file).read()
             db = json.loads(s)
@@ -252,6 +265,9 @@ class MainWindow(QtGui.QMainWindow):
         self.updateItemCounters()
 
     def store(self):
+        if self.do_not_store is True:
+            return
+
         json_struct = {'version': "1.0", 'database': [], 'tag_filter': []}
 
         for i in range(self.model.rowCount()):
@@ -264,8 +280,10 @@ class MainWindow(QtGui.QMainWindow):
                 json_struct['tag_filter'].append(self.tabs.widget(i).name)
 
         s = json.dumps(json_struct, sort_keys=True, indent=4, separators=(',', ': '))
-        with open(self.database_file, 'w') as f:
+        with open(self.database_temp_file, 'w') as f:
             f.write(s)
+        shutil.copy(self.database_temp_file, self.database_file)
+        os.remove(self.database_temp_file)
 
     def updateMenu(self):
         tags = []
