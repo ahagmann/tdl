@@ -30,6 +30,7 @@ import argparse
 import json
 import os
 from functools import partial
+import signal
 
 
 ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -306,6 +307,9 @@ class MainWindow(QtGui.QMainWindow):
             self.setGeometry(self.geometry())
             self.show()
 
+    def exit_request(self, *args):
+        self.close()
+
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
@@ -318,6 +322,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     gui = MainWindow(args)
+
+    signal.signal(signal.SIGINT, gui.exit_request)
+    signal.signal(signal.SIGTERM, gui.exit_request)
+
+    timer = QtCore.QTimer()
+    timer.start(500)
+    timer.timeout.connect(lambda: None)
 
     gui.show()
     sys.exit(app.exec_())
