@@ -18,6 +18,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
+import sip
+sip.setapi('QString', 2)
+sip.setapi('QVariant', 2)
+
 import sys
 from PyQt4 import QtCore, QtGui, uic
 import time
