@@ -74,7 +74,7 @@ class IssueQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
         if 'backlog' in item.tags:
             return False
 
-        return len(item.issues) > 0
+        return len(item.redmine_issues + item.jira_issues) > 0
 
 
 class AllQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
@@ -92,13 +92,14 @@ class AllQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
 
 
 class Tab(QtGui.QWidget):
-    def __init__(self, model, filter, name, issue_link_prefix, parent=None):
+    def __init__(self, model, filter, name, redmine_issue_link_prefix, jira_issue_link_prefix, parent=None):
         QtGui.QWidget.__init__(self, parent)
         uic.loadUi('tab.ui', self)
 
         self.name = name
         self.sourceModel = model
-        self.issue_link_prefix = issue_link_prefix
+        self.redmine_issue_link_prefix = redmine_issue_link_prefix
+        self.jira_issue_link_prefix = jira_issue_link_prefix
 
         #self.view.viewport().setAutoFillBackground(False)
 
@@ -124,13 +125,18 @@ class Tab(QtGui.QWidget):
         return c
 
     def openIssue(self, pos):
-        if self.issue_link_prefix is not None:
-            index = self.view.indexAt(pos)
-            source_index = self.model.mapToSource(index)
-            item = self.sourceModel.item(source_index.row())
-            if len(item.issues) > 0:
-                issue = item.issues[0]
-                url = QtCore.QUrl(self.issue_link_prefix + issue)
+        index = self.view.indexAt(pos)
+        source_index = self.model.mapToSource(index)
+        item = self.sourceModel.item(source_index.row())
+        if self.redmine_issue_link_prefix is not None:
+            if len(item.redmine_issues) > 0:
+                issue = item.redmine_issues[0]
+                url = QtCore.QUrl(self.redmine_issue_link_prefix + issue)
+                QtGui.QDesktopServices.openUrl(url)
+        if self.jira_issue_link_prefix is not None:
+            if len(item.jira_issues) > 0:
+                issue = item.jira_issues[0]
+                url = QtCore.QUrl(self.jira_issue_link_prefix + issue)
                 QtGui.QDesktopServices.openUrl(url)
 
 
@@ -140,7 +146,8 @@ class Item(QtGui.QStandardItem):
         self.empty = True
         self.done_timestamp = done_timestamp
         self.tags = []
-        self.issues = []
+        self.redmine_issues = []
+        self.jira_issues = []
         if done_timestamp:
             self.setCheckState(2)
 
@@ -165,10 +172,11 @@ class Item(QtGui.QStandardItem):
             self.done_timestamp = None
 
         self.tags = re.findall(r'#([A-Za-z][A-Za-z0-9]*)', self.text())
-        self.issues = re.findall(r'#([0-9]+)', self.text())
+        self.redmine_issues = re.findall(r'#([0-9]+)', self.text())
+        self.jira_issues = re.findall(r'([A-Z]+-[0-9]+)', self.text())
 
     def __str__(self):
-        return "%s (%s, %s, %s)" % (self.text(), str(self.done_timestamp), str(self.tags), str(self.issues))
+        return "%s (%s, %s, %s)" % (self.text(), str(self.done_timestamp), str(self.tags), str(self.redmine_issues + self.jira_issues))
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -179,15 +187,16 @@ class MainWindow(QtGui.QMainWindow):
         self.do_not_store = False
         self.database_file = os.path.expanduser(args.database)
         self.database_temp_file = self.database_file + ".tmp"
-        self.issue_link_prefix = args.issue_link_prefix
+        self.redmine_issue_link_prefix = args.redmine_link_prefix
+        self.jira_issue_link_prefix = args.jira_link_prefix
         self.cleanup_time_h = args.cleanup_time
 
         self.model = QtGui.QStandardItemModel(self)
 
-        all_tab = Tab(self.model, None, 'All', self.issue_link_prefix, self)
+        all_tab = Tab(self.model, None, 'All', self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
         self.tabs.addTab(all_tab, "All")
 
-        issue_tab = Tab(self.model, '_ISSUES', "Issues", self.issue_link_prefix, self)
+        issue_tab = Tab(self.model, '_ISSUES', "Issues", self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
         self.tabs.addTab(issue_tab, "Issues")
 
         self.load()
@@ -305,7 +314,7 @@ class MainWindow(QtGui.QMainWindow):
             self.tabs.setTabText(i, label)
 
     def addTagTab(self, tag):
-        tab = Tab(self.model, tag, tag, self.issue_link_prefix, self)
+        tab = Tab(self.model, tag, tag, self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
         self.tabs.addTab(tab, tag)
 
         self.updateItemCounters()
@@ -335,9 +344,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("todo-list utility")
     parser.add_argument('--database', default='~/.todo-list.db', help='Database file to load/store')
     parser.add_argument('--cleanup-time', default=12, type=int, help='Duration in hours after which finished items are removed')
-    parser.add_argument('--issue-link-prefix', default=None, help='Prefix for links to bugtracker entries')
+    parser.add_argument('--issue-link-prefix', default=None, help='Prefix for links to Redmine bugtracker entries (compatibility)')
+    parser.add_argument('--redmine-link-prefix', default=None, help='Prefix for links to Redmine bugtracker entries')
+    parser.add_argument('--jira-link-prefix', default=None, help='Prefix for links to Jira bugtracker entries')
 
     args = parser.parse_args()
+
+    if args.redmine_link_prefix is None:
+        args.redmine_link_prefix = args.issue_link_prefix
 
     gui = MainWindow(args)
 
