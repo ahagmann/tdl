@@ -25,6 +25,7 @@ sip.setapi('QVariant', 2)
 import sys
 from PyQt4 import QtCore, QtGui, uic
 import time
+import datetime
 import re
 import argparse
 import json
@@ -42,11 +43,38 @@ def debug(s):
     pass
 
 
-class TagQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
-    def __init__(self, tag, parent=None):
+class SortQSortFilterProxyModelBase(QtGui.QSortFilterProxyModel):
+    def __init__(self, parent=None):
         QtGui.QSortFilterProxyModel.__init__(self, parent)
-        self.tag = tag
         self.setDynamicSortFilter(True)
+
+    def lessThan(self, index_a, index_b):
+        item_a = self.sourceModel().itemFromIndex(index_a)
+        item_b = self.sourceModel().itemFromIndex(index_b)
+
+        if item_a.empty is True:
+            return False
+
+        if item_b.empty is True:
+            return True
+
+        if item_a.due is None and item_b.due is None:
+            return item_b.sort_index > item_a.sort_index
+        elif item_a.due is None and item_b.due is not None:
+                return False
+        elif item_a.due is not None and item_b.due is None:
+                return True
+        else:
+            if item_b.due == item_a.due:
+                return item_b.sort_index > item_a.sort_index
+            else:
+                return item_b.due > item_a.due
+
+
+class TagQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+    def __init__(self, tag, parent=None):
+        SortQSortFilterProxyModelBase.__init__(self, parent)
+        self.tag = tag
 
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
@@ -60,10 +88,9 @@ class TagQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
         return self.tag in item.tags
 
 
-class IssueQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
+class IssueQSortFilterProxyModel(SortQSortFilterProxyModelBase):
     def __init__(self, parent=None):
-        QtGui.QSortFilterProxyModel.__init__(self, parent)
-        self.setDynamicSortFilter(True)
+        SortQSortFilterProxyModelBase.__init__(self, parent)
 
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
@@ -77,10 +104,22 @@ class IssueQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
         return len(item.redmine_issues + item.jira_issues) > 0
 
 
-class AllQSortFilterProxyModel(QtGui.QSortFilterProxyModel):
+class DueQSortFilterProxyModel(SortQSortFilterProxyModelBase):
     def __init__(self, parent=None):
-        QtGui.QSortFilterProxyModel.__init__(self, parent)
-        self.setDynamicSortFilter(True)
+        SortQSortFilterProxyModelBase.__init__(self, parent)
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        item = self.sourceModel().item(source_row)
+
+        if item.empty is True:
+            return True
+
+        return item.due is not None
+
+
+class AllQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+    def __init__(self, parent=None):
+        SortQSortFilterProxyModelBase.__init__(self, parent)
 
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
@@ -107,6 +146,8 @@ class Tab(QtGui.QWidget):
             self.model = AllQSortFilterProxyModel(self)
         elif filter == '_ISSUES':
             self.model = IssueQSortFilterProxyModel(self)
+        elif filter == '_DUE':
+            self.model = DueQSortFilterProxyModel(self)
         else:
             self.model = TagQSortFilterProxyModel(filter, self)
         self.model.setSourceModel(model)
@@ -124,23 +165,29 @@ class Tab(QtGui.QWidget):
                 c += 1
         return c
 
+    def sort(self):
+        self.model.sort(0)
+
     def openIssue(self, pos):
         index = self.view.indexAt(pos)
         source_index = self.model.mapToSource(index)
         item = self.sourceModel.item(source_index.row())
-        if self.redmine_issue_link_prefix is not None:
-            if len(item.redmine_issues) > 0:
-                issue = item.redmine_issues[0]
-                url = QtCore.QUrl(self.redmine_issue_link_prefix + issue)
-                QtGui.QDesktopServices.openUrl(url)
-        if self.jira_issue_link_prefix is not None:
-            if len(item.jira_issues) > 0:
-                issue = item.jira_issues[0]
-                url = QtCore.QUrl(self.jira_issue_link_prefix + issue)
-                QtGui.QDesktopServices.openUrl(url)
+        if item:
+            if self.redmine_issue_link_prefix is not None:
+                if len(item.redmine_issues) > 0:
+                    issue = item.redmine_issues[0]
+                    url = QtCore.QUrl(self.redmine_issue_link_prefix + issue)
+                    QtGui.QDesktopServices.openUrl(url)
+            if self.jira_issue_link_prefix is not None:
+                if len(item.jira_issues) > 0:
+                    issue = item.jira_issues[0]
+                    url = QtCore.QUrl(self.jira_issue_link_prefix + issue)
+                    QtGui.QDesktopServices.openUrl(url)
 
 
 class Item(QtGui.QStandardItem):
+    sequence_number = 0
+
     def __init__(self, text='', done_timestamp=None):
         QtGui.QStandardItem.__init__(self, text)
         self.empty = True
@@ -148,6 +195,9 @@ class Item(QtGui.QStandardItem):
         self.tags = []
         self.redmine_issues = []
         self.jira_issues = []
+        self.due = None
+        self.sort_index = Item.sequence_number
+        Item.sequence_number += 1
         if done_timestamp:
             self.setCheckState(2)
 
@@ -171,9 +221,65 @@ class Item(QtGui.QStandardItem):
         else:
             self.done_timestamp = None
 
+        # parse tags
         self.tags = re.findall(r'#([A-Za-z][A-Za-z0-9]*)', self.text())
+
+        # parse issues
         self.redmine_issues = re.findall(r'#([0-9]+)', self.text())
         self.jira_issues = re.findall(r'([A-Z]+-[0-9]+)', self.text())
+
+        # replace due 'days' by due 'date'
+        due_days = re.findall(r'@([0-9]+)d', self.text())
+        if len(due_days) > 0:
+            due_day = due_days[0]
+            due_date = datetime.datetime.fromtimestamp(time.time() + int(due_day) * 3600 * 24).strftime("@%d-%m")
+            self.setText(self.text().replace("@%sd" % due_day, due_date))
+
+        # replace due 'weekdays' by due 'date'
+        due_days = re.findall(r'@(mo|di|mi|do|fr|sa|so)', self.text(), re.IGNORECASE)
+        if len(due_days) > 0:
+            due_day = due_days[0]
+            due_day_num = {'mo': 1, 'di': 2, 'mi': 3, 'do': 4, 'fr': 5, 'sa': 6, 'so': 0}[due_day.lower()]
+            today_num = int(datetime.datetime.fromtimestamp(time.time()).strftime("%w"))
+            day_diff = (due_day_num - today_num) % 7
+            if day_diff == 0:
+                day_diff = 7
+            due_date = datetime.datetime.fromtimestamp(time.time() + day_diff * 3600 * 24).strftime("@%d-%m")
+            self.setText(self.text().replace("@%s" % due_day, due_date))
+
+        # parse dates
+        due_dates = re.findall(r'@([0-9]+-[0-9]+)', self.text())
+        if len(due_dates) > 0:
+            due_date = due_dates[0]
+            year = datetime.datetime.now().year
+            due_date_day = datetime.datetime.strptime(due_date, "%d-%m")
+            due_date_day = due_date_day.replace(year=year)
+            today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            if today - due_date_day > datetime.timedelta(30):    # shift to next year if date is older than one past month
+                due_date_day = due_date_day.replace(year=year + 1)
+
+            self.due = time.mktime(due_date_day.timetuple())
+
+            # set color for item including dates
+            brush = self.foreground()
+            if self.checkState() != 2:
+
+                diff = self.due - time.mktime(today.timetuple())
+                if diff < 0:
+                    brush.setColor(QtGui.QColor(255, 0, 0))
+                elif diff < 3600 * 24:
+                    brush.setColor(QtGui.QColor(255, 128, 0))
+                else:
+                    brush.setColor(QtGui.QColor(0, 102, 204))
+            else:
+                brush.setColor(QtGui.QColor(0, 0, 0))
+
+            # todo: if setForeground is called, the checkbox will never be shown checked
+            self.setForeground(brush)
+
+        else:
+            self.due = None
+            # todo: actually foreground should be set here as well, but we do not do it as this would hide checked checkboxes
 
     def __str__(self):
         return "%s (%s, %s, %s)" % (self.text(), str(self.done_timestamp), str(self.tags), str(self.redmine_issues + self.jira_issues))
@@ -195,6 +301,9 @@ class MainWindow(QtGui.QMainWindow):
 
         all_tab = Tab(self.model, None, 'All', self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
         self.tabs.addTab(all_tab, "All")
+
+        due_tab = Tab(self.model, '_DUE', 'Due', self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
+        self.tabs.addTab(due_tab, "Due")
 
         issue_tab = Tab(self.model, '_ISSUES', "Issues", self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
         self.tabs.addTab(issue_tab, "Issues")
@@ -230,7 +339,7 @@ class MainWindow(QtGui.QMainWindow):
 
         debug(item)
         self.updateMenu()
-        self.updateItemCounters()
+        self.updateItemViews()
 
     def cleanup(self):
         duration = self.cleanup_time_h * 60 * 60
@@ -242,6 +351,7 @@ class MainWindow(QtGui.QMainWindow):
                     debug("remove %d" % i)
 
         self.store()
+        self.updateItemViews()
 
     def load(self):
         if os.path.exists(self.database_temp_file):
@@ -269,9 +379,10 @@ class MainWindow(QtGui.QMainWindow):
 
         except Exception as e:
             print("WARNING: Could not load database from '%s': %s" % (self.database_file, str(e)))
+            sys.exit(1)
 
         self.updateMenu()
-        self.updateItemCounters()
+        self.updateItemViews()
 
     def store(self):
         if self.do_not_store is True:
@@ -281,11 +392,11 @@ class MainWindow(QtGui.QMainWindow):
 
         for i in range(self.model.rowCount()):
             item = self.model.item(i)
-            if item.empty == False:
+            if item.empty is False:
                 json_struct['database'].append({'text': item.text(), 'done_timestamp': item.done_timestamp})
 
         for i in range(self.tabs.count()):
-            if i > 1:
+            if i > 2:
                 json_struct['tag_filter'].append(self.tabs.widget(i).name)
 
         s = json.dumps(json_struct, sort_keys=True, indent=4, separators=(',', ': '))
@@ -306,8 +417,9 @@ class MainWindow(QtGui.QMainWindow):
             self.menuAdd.addAction(action)
             action.triggered[()].connect(partial(self.addTagTab, tag))
 
-    def updateItemCounters(self):
+    def updateItemViews(self):
         for i in range(self.tabs.count()):
+            self.tabs.widget(i).sort()
             c = self.tabs.widget(i).activeCount()
             n = self.tabs.widget(i).name
             label = "%s (%d)" % (n, c)
@@ -317,11 +429,11 @@ class MainWindow(QtGui.QMainWindow):
         tab = Tab(self.model, tag, tag, self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
         self.tabs.addTab(tab, tag)
 
-        self.updateItemCounters()
+        self.updateItemViews()
 
     def closeTab(self):
         i = self.tabs.currentIndex()
-        if i > 1:
+        if i > 2:
             self.tabs.removeTab(i)
 
     def closeEvent(self, event):
@@ -344,14 +456,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("todo-list utility")
     parser.add_argument('--database', default='~/.todo-list.db', help='Database file to load/store')
     parser.add_argument('--cleanup-time', default=12, type=int, help='Duration in hours after which finished items are removed')
-    parser.add_argument('--issue-link-prefix', default=None, help='Prefix for links to Redmine bugtracker entries (compatibility)')
-    parser.add_argument('--redmine-link-prefix', default=None, help='Prefix for links to Redmine bugtracker entries')
+    parser.add_argument('--redmine-link-prefix', '--issue-link-prefix', default=None, help='Prefix for links to Redmine bugtracker entries')
     parser.add_argument('--jira-link-prefix', default=None, help='Prefix for links to Jira bugtracker entries')
 
     args = parser.parse_args()
-
-    if args.redmine_link_prefix is None:
-        args.redmine_link_prefix = args.issue_link_prefix
 
     gui = MainWindow(args)
 
