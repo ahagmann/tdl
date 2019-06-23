@@ -425,6 +425,13 @@ class MainWindow(QtGui.QMainWindow):
             label = "%s (%d)" % (n, c)
             self.tabs.setTabText(i, label)
 
+        # update items
+        for r in range(self.model.rowCount()):
+            index = self.model.index(r, 0)
+            item = self.model.itemFromIndex(index)
+            #name = self.model.data(index)
+            item.updateState()
+
     def addTagTab(self, tag):
         tab = Tab(self.model, tag, tag, self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
         self.tabs.addTab(tab, tag)
