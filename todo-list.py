@@ -364,22 +364,26 @@ class MainWindow(QtGui.QMainWindow):
                 self.setPalette(p)
                 self.setWindowTitle(self.windowTitle() + ' (Read only)')
 
-        try:
-            s = open(self.database_file).read()
-            db = json.loads(s)
-            if db['version'] == "1.0":
-                for i in db['database']:
-                    item = Item(i['text'], i['done_timestamp'])
-                    self.model.appendRow(item)
+        elif os.path.exists(self.database_file):
+            try:
+                s = open(self.database_file).read()
+                db = json.loads(s)
+                if db['version'] == "1.0":
+                    for i in db['database']:
+                        item = Item(i['text'], i['done_timestamp'])
+                        self.model.appendRow(item)
 
-                for i in db['tag_filter']:
-                    self.addTagTab(i)
-            else:
-                raise "Unknown database version"
+                    for i in db['tag_filter']:
+                        self.addTagTab(i)
+                else:
+                    raise "Unknown database version"
 
-        except Exception as e:
-            print("WARNING: Could not load database from '%s': %s" % (self.database_file, str(e)))
-            sys.exit(1)
+            except Exception as e:
+                print("WARNING: Could not load database from '%s': %s" % (self.database_file, str(e)))
+                sys.exit(1)
+        else:
+            print("WARNING: No database found at '%s'. Start with an empty database." % (self.database_file))
+
 
         self.updateMenu()
         self.updateItemViews()
