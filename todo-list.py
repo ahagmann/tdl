@@ -150,6 +150,8 @@ class Tab(QtWidgets.QWidget):
         self.redmine_issue_link_prefix = redmine_issue_link_prefix
         self.jira_issue_link_prefix = jira_issue_link_prefix
 
+        self.view.setSpacing(0)
+
         #self.view.viewport().setAutoFillBackground(False)
 
         if filter is None:
