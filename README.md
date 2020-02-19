@@ -59,3 +59,7 @@ References to issue trackers can be added for
 
 The corresponding webpacge is opended when you right click on the item.
 This needs the `*-link-prefix` argument set for the coressponding issue tracker.
+
+## URL References
+
+http(s) URLs are opened when you right click in the item.

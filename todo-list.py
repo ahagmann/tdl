@@ -184,15 +184,16 @@ class Tab(QtWidgets.QWidget):
         item = self.sourceModel.item(source_index.row())
         if item:
             if self.redmine_issue_link_prefix is not None:
-                if len(item.redmine_issues) > 0:
-                    issue = item.redmine_issues[0]
+                for issue in item.redmine_issues:
                     url = QtCore.QUrl(self.redmine_issue_link_prefix + issue)
                     QtGui.QDesktopServices.openUrl(url)
             if self.jira_issue_link_prefix is not None:
-                if len(item.jira_issues) > 0:
-                    issue = item.jira_issues[0]
+                for issue in item.jira_issues:
                     url = QtCore.QUrl(self.jira_issue_link_prefix + issue)
                     QtGui.QDesktopServices.openUrl(url)
+            for url in item.urls:
+                url = QtCore.QUrl(url)
+                QtGui.QDesktopServices.openUrl(url)
 
 
 class Item(QtGui.QStandardItem):
@@ -205,6 +206,7 @@ class Item(QtGui.QStandardItem):
         self.tags = []
         self.redmine_issues = []
         self.jira_issues = []
+        self.urls = []
         self.due = None
         self.sort_index = Item.sequence_number
         Item.sequence_number += 1
@@ -237,6 +239,7 @@ class Item(QtGui.QStandardItem):
         # parse issues
         self.redmine_issues = re.findall(r'#([0-9]+)', self.text())
         self.jira_issues = re.findall(r'([A-Z]+-[0-9]+)', self.text())
+        self.urls = re.findall(r'(http.?://[^ ]+)', self.text())
 
         # replace due 'days' by due 'date'
         due_days = re.findall(r'@([0-9]+)d', self.text())
