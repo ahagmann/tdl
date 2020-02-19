@@ -18,12 +18,22 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import sip
+try:
+    from PyQt5 import sip
+except ImportError:
+    import sip
 sip.setapi('QString', 2)
 sip.setapi('QVariant', 2)
 
 import sys
-from PyQt4 import QtCore, QtGui, uic
+try:
+    from PyQt5 import QtCore, QtGui, uic
+    from PyQt5.QtCore import QSortFilterProxyModel
+    from PyQt5 import QtWidgets
+except ImportError:
+    from PyQt4 import QtCore, QtGui, uic
+    from PyQt4.QtGui import QSortFilterProxyModel
+    from PyQt4 import QtGui as QtWidgets
 import time
 import datetime
 import re
@@ -43,9 +53,9 @@ def debug(s):
     pass
 
 
-class SortQSortFilterProxyModelBase(QtGui.QSortFilterProxyModel):
+class SortQSortFilterProxyModelBase(QSortFilterProxyModel):
     def __init__(self, parent=None):
-        QtGui.QSortFilterProxyModel.__init__(self, parent)
+        QSortFilterProxyModel.__init__(self, parent)
         self.setDynamicSortFilter(True)
 
     def lessThan(self, index_a, index_b):
@@ -130,9 +140,9 @@ class AllQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         return True
 
 
-class Tab(QtGui.QWidget):
+class Tab(QtWidgets.QWidget):
     def __init__(self, model, filter, name, redmine_issue_link_prefix, jira_issue_link_prefix, parent=None):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QWidget.__init__(self, parent)
         uic.loadUi('tab.ui', self)
 
         self.name = name
@@ -249,6 +259,8 @@ class Item(QtGui.QStandardItem):
 
         # parse dates
         due_dates = re.findall(r'@([0-9]+-[0-9]+)', self.text())
+        brush = self.foreground()
+        brush.setColor(QtGui.QColor(0, 0, 0))
         if len(due_dates) > 0:
             due_date = due_dates[0]
             year = datetime.datetime.now().year
@@ -261,9 +273,7 @@ class Item(QtGui.QStandardItem):
             self.due = time.mktime(due_date_day.timetuple())
 
             # set color for item including dates
-            brush = self.foreground()
             if self.checkState() != 2:
-
                 diff = self.due - time.mktime(today.timetuple())
                 if diff < 0:
                     brush.setColor(QtGui.QColor(255, 0, 0))
@@ -271,23 +281,19 @@ class Item(QtGui.QStandardItem):
                     brush.setColor(QtGui.QColor(255, 128, 0))
                 else:
                     brush.setColor(QtGui.QColor(0, 102, 204))
-            else:
-                brush.setColor(QtGui.QColor(0, 0, 0))
-
-            # todo: if setForeground is called, the checkbox will never be shown checked
-            self.setForeground(brush)
 
         else:
             self.due = None
-            # todo: actually foreground should be set here as well, but we do not do it as this would hide checked checkboxes
+
+        self.setForeground(brush)
 
     def __str__(self):
         return "%s (%s, %s, %s)" % (self.text(), str(self.done_timestamp), str(self.tags), str(self.redmine_issues + self.jira_issues))
 
 
-class MainWindow(QtGui.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, args, parent=None):
-        QtGui.QMainWindow.__init__(self, parent)
+        QtWidgets.QMainWindow.__init__(self, parent)
         uic.loadUi('mainwindow.ui', self)
 
         self.do_not_store = False
@@ -315,7 +321,7 @@ class MainWindow(QtGui.QMainWindow):
         self.actionClose.triggered.connect(self.closeTab)
 
         icon = QtGui.QIcon(os.path.join(ROOT, 'icon.png'))
-        self.sys_tray_icon = QtGui.QSystemTrayIcon(self)
+        self.sys_tray_icon = QtWidgets.QSystemTrayIcon(self)
         self.sys_tray_icon.setIcon(icon)
         self.sys_tray_icon.setVisible(True)
         self.sys_tray_icon.activated.connect(self.tray_action)
@@ -355,8 +361,8 @@ class MainWindow(QtGui.QMainWindow):
 
     def load(self):
         if os.path.exists(self.database_temp_file):
-            ret = QtGui.QMessageBox.warning(self, "Uups...", "Found a database temp file (%s).\nPress 'Ignore' to continue.\nPress 'Cancel' allows to continue in read only mode, to quit and check and solve this manually." % self.database_temp_file, buttons = QtGui.QMessageBox.Ignore | QtGui.QMessageBox.Cancel)
-            if ret == QtGui.QMessageBox.Cancel:
+            ret = QtWidgets.QMessageBox.warning(self, "Uups...", "Found a database temp file (%s).\nPress 'Ignore' to continue.\nPress 'Cancel' allows to continue in read only mode, to quit and check and solve this manually." % self.database_temp_file, buttons = QtGui.QMessageBox.Ignore | QtGui.QMessageBox.Cancel)
+            if ret == QtWidgets.QMessageBox.Cancel:
                 self.do_not_store = True
 
                 p = self.palette()
@@ -417,9 +423,9 @@ class MainWindow(QtGui.QMainWindow):
 
         self.menuAdd.clear()
         for tag in tags:
-            action = QtGui.QAction(tag, self)
+            action = QtWidgets.QAction(tag, self)
             self.menuAdd.addAction(action)
-            action.triggered[()].connect(partial(self.addTagTab, tag))
+            action.triggered.connect(partial(self.addTagTab, tag))
 
     def updateItemViews(self):
         for i in range(self.tabs.count()):
@@ -448,11 +454,11 @@ class MainWindow(QtGui.QMainWindow):
             self.tabs.removeTab(i)
 
     def closeEvent(self, event):
-        QtGui.QMainWindow.closeEvent(self, event)
+        QtWidgets.QMainWindow.closeEvent(self, event)
         self.store()
 
     def tray_action(self, reason):
-        if reason == QtGui.QSystemTrayIcon.Trigger:
+        if reason == QtWidgets.QSystemTrayIcon.Trigger:
             self.hide()
             self.setGeometry(self.geometry())
             self.show()
@@ -462,7 +468,7 @@ class MainWindow(QtGui.QMainWindow):
 
 
 if __name__ == "__main__":
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
 
     parser = argparse.ArgumentParser("todo-list utility")
     parser.add_argument('--database', default='~/.todo-list.db', help='Database file to load/store')
