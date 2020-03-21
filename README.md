@@ -53,12 +53,14 @@ Due dates are used to sort the items in a tab, earliest at the top. Further, ite
 
 ## Issue Tracker References
 
-References to issue trackers can be added for
-* *Redmine* via *#[0-9]+*
-* Jira via *[A-Z]+-[0-9]+*
+References to issue trackers can be added via the --link argument. It expects a list of pairs of a link with the `<TRIGGER>` keyword and a regex, used to search for triggers. The `<TRIGGER>` keyword will be replaced by the result of the regex search to create a link.
+
+E.g
+* *Redmine* via `--link "http://redmine.local/issues/<TRIGGER>,#([0-9]+)"`
+* *Jira* via `--link "http://jira.local/browse/<TRIGGER>,([A-Z]+-[0-9]+)"`
+* *Gerrit* via `--link "http://gerrit.local/#/c/<TRIGGER>,g([0-9]+)"`
 
 The corresponding webpacge is opended when you right click on the item.
-This needs the `*-link-prefix` argument set for the coressponding issue tracker.
 
 ## URL References
 

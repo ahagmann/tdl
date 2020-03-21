@@ -2,6 +2,9 @@
 
 #
 # todo-list
+#
+# https://github.com/ahagmann/tdl
+#
 # Copyright (C) 2017 https://github.com/ahagmann
 #
 # This program is free software: you can redistribute it and/or modify
@@ -49,7 +52,7 @@ ROOT = os.path.abspath(os.path.dirname(__file__))
 
 
 def debug(s):
-    #print("DEBUG: %s" % s)
+    # print("DEBUG: %s" % s)
     pass
 
 
@@ -71,9 +74,9 @@ class SortQSortFilterProxyModelBase(QSortFilterProxyModel):
         if item_a.due is None and item_b.due is None:
             return item_b.sort_index > item_a.sort_index
         elif item_a.due is None and item_b.due is not None:
-                return False
+            return False
         elif item_a.due is not None and item_b.due is None:
-                return True
+            return True
         else:
             if item_b.due == item_a.due:
                 return item_b.sort_index > item_a.sort_index
@@ -98,7 +101,7 @@ class TagQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         return self.tag in item.tags
 
 
-class IssueQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+class UrlQSortFilterProxyModel(SortQSortFilterProxyModelBase):
     def __init__(self, parent=None):
         SortQSortFilterProxyModelBase.__init__(self, parent)
 
@@ -111,7 +114,7 @@ class IssueQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         if 'backlog' in item.tags:
             return False
 
-        return len(item.redmine_issues + item.jira_issues) > 0
+        return len(item.urls) > 0
 
 
 class DueQSortFilterProxyModel(SortQSortFilterProxyModelBase):
@@ -141,23 +144,19 @@ class AllQSortFilterProxyModel(SortQSortFilterProxyModelBase):
 
 
 class Tab(QtWidgets.QWidget):
-    def __init__(self, model, filter, name, redmine_issue_link_prefix, jira_issue_link_prefix, parent=None):
+    def __init__(self, model, filter, name, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
         uic.loadUi('tab.ui', self)
 
         self.name = name
         self.sourceModel = model
-        self.redmine_issue_link_prefix = redmine_issue_link_prefix
-        self.jira_issue_link_prefix = jira_issue_link_prefix
 
         self.view.setSpacing(0)
-
-        #self.view.viewport().setAutoFillBackground(False)
 
         if filter is None:
             self.model = AllQSortFilterProxyModel(self)
         elif filter == '_ISSUES':
-            self.model = IssueQSortFilterProxyModel(self)
+            self.model = UrlQSortFilterProxyModel(self)
         elif filter == '_DUE':
             self.model = DueQSortFilterProxyModel(self)
         else:
@@ -165,7 +164,7 @@ class Tab(QtWidgets.QWidget):
         self.model.setSourceModel(model)
         self.view.setModel(self.model)
 
-        self.view.customContextMenuRequested.connect(self.openIssue)
+        self.view.customContextMenuRequested.connect(self.openUrls)
 
     def activeCount(self):
         c = 0
@@ -180,34 +179,24 @@ class Tab(QtWidgets.QWidget):
     def sort(self):
         self.model.sort(0)
 
-    def openIssue(self, pos):
+    def openUrls(self, pos):
         index = self.view.indexAt(pos)
         source_index = self.model.mapToSource(index)
         item = self.sourceModel.item(source_index.row())
         if item:
-            if self.redmine_issue_link_prefix is not None:
-                for issue in item.redmine_issues:
-                    url = QtCore.QUrl(self.redmine_issue_link_prefix + issue)
-                    QtGui.QDesktopServices.openUrl(url)
-            if self.jira_issue_link_prefix is not None:
-                for issue in item.jira_issues:
-                    url = QtCore.QUrl(self.jira_issue_link_prefix + issue)
-                    QtGui.QDesktopServices.openUrl(url)
             for url in item.urls:
-                url = QtCore.QUrl(url)
-                QtGui.QDesktopServices.openUrl(url)
+                QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
 
 
 class Item(QtGui.QStandardItem):
     sequence_number = 0
 
-    def __init__(self, text='', done_timestamp=None):
+    def __init__(self, link_configs, text='', done_timestamp=None):
         QtGui.QStandardItem.__init__(self, text)
+        self.link_configs = link_configs
         self.empty = True
         self.done_timestamp = done_timestamp
         self.tags = []
-        self.redmine_issues = []
-        self.jira_issues = []
         self.urls = []
         self.due = None
         self.sort_index = Item.sequence_number
@@ -238,10 +227,11 @@ class Item(QtGui.QStandardItem):
         # parse tags
         self.tags = re.findall(r'#([A-Za-z][A-Za-z0-9]*)', self.text())
 
-        # parse issues
-        self.redmine_issues = re.findall(r'#([0-9]+)', self.text())
-        self.jira_issues = re.findall(r'([A-Z]+-[0-9]+)', self.text())
-        self.urls = re.findall(r'(http.?://[^ ]+)', self.text())
+        # parse links
+        self.urls = []
+        for link, re_trigger in self.link_configs:
+            for trigger in re.findall(re_trigger, self.text()):
+                self.urls.append(link.replace('<TRIGGER>', trigger))
 
         # replace due 'days' by due 'date'
         due_days = re.findall(r'@([0-9]+)d', self.text())
@@ -293,7 +283,7 @@ class Item(QtGui.QStandardItem):
         self.setForeground(brush)
 
     def __str__(self):
-        return "%s (%s, %s, %s)" % (self.text(), str(self.done_timestamp), str(self.tags), str(self.redmine_issues + self.jira_issues))
+        return "%s (%s, %s, %s)" % (self.text(), str(self.done_timestamp), str(self.tags), str(self.urls))
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -304,19 +294,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.do_not_store = False
         self.database_file = os.path.expanduser(args.database)
         self.database_temp_file = self.database_file + ".tmp"
-        self.redmine_issue_link_prefix = args.redmine_link_prefix
-        self.jira_issue_link_prefix = args.jira_link_prefix
+        self.link_configs = args.link
         self.cleanup_time_h = args.cleanup_time
 
         self.model = QtGui.QStandardItemModel(self)
 
-        all_tab = Tab(self.model, None, 'All', self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
+        all_tab = Tab(self.model, None, 'All', self)
         self.tabs.addTab(all_tab, "All")
 
-        due_tab = Tab(self.model, '_DUE', 'Due', self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
+        due_tab = Tab(self.model, '_DUE', 'Due', self)
         self.tabs.addTab(due_tab, "Due")
 
-        issue_tab = Tab(self.model, '_ISSUES', "Issues", self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
+        issue_tab = Tab(self.model, '_ISSUES', "Issues", self)
         self.tabs.addTab(issue_tab, "Issues")
 
         self.load()
@@ -337,7 +326,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cleanup_timer.start()
 
     def add_empty_item(self):
-        item = Item()
+        item = Item(self.link_configs)
         self.model.appendRow(item)
 
     def on_item_changed(self, item):
@@ -366,7 +355,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def load(self):
         if os.path.exists(self.database_temp_file):
-            ret = QtWidgets.QMessageBox.warning(self, "Uups...", "Found a database temp file (%s).\nPress 'Ignore' to continue.\nPress 'Cancel' allows to continue in read only mode, to quit and check and solve this manually." % self.database_temp_file, buttons = QtGui.QMessageBox.Ignore | QtGui.QMessageBox.Cancel)
+            ret = QtWidgets.QMessageBox.warning(self, "Uups...", "Found a database temp file (%s).\nPress 'Ignore' to continue.\nPress 'Cancel' allows to continue in read only mode, to quit and check and solve this manually." % self.database_temp_file, buttons=QtGui.QMessageBox.Ignore | QtGui.QMessageBox.Cancel)
             if ret == QtWidgets.QMessageBox.Cancel:
                 self.do_not_store = True
 
@@ -381,7 +370,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 db = json.loads(s)
                 if db['version'] == "1.0":
                     for i in db['database']:
-                        item = Item(i['text'], i['done_timestamp'])
+                        item = Item(self.link_configs, i['text'], i['done_timestamp'])
                         self.model.appendRow(item)
 
                     for i in db['tag_filter']:
@@ -394,7 +383,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 sys.exit(1)
         else:
             print("WARNING: No database found at '%s'. Start with an empty database." % (self.database_file))
-
 
         self.updateMenu()
         self.updateItemViews()
@@ -444,11 +432,10 @@ class MainWindow(QtWidgets.QMainWindow):
         for r in range(self.model.rowCount()):
             index = self.model.index(r, 0)
             item = self.model.itemFromIndex(index)
-            #name = self.model.data(index)
             item.updateState()
 
     def addTagTab(self, tag):
-        tab = Tab(self.model, tag, tag, self.redmine_issue_link_prefix, self.jira_issue_link_prefix, self)
+        tab = Tab(self.model, tag, tag, self)
         self.tabs.addTab(tab, tag)
 
         self.updateItemViews()
@@ -472,16 +459,44 @@ class MainWindow(QtWidgets.QMainWindow):
         self.close()
 
 
+def link_argument(arg):
+    ret = [str(x) for x in arg.split(',')]
+    if len(ret) != 2:
+        raise argparse.ArgumentTypeError("Expects a pair separated by ','")
+
+    try:
+        re.compile(ret[1])
+    except Exception as e:
+        raise argparse.ArgumentTypeError("Invalid regex: %s" % str(e))
+
+    if '<TRIGGER>' not in ret[0]:
+        raise argparse.ArgumentTypeError("<TRIGGER> keyword not found")
+
+    return ret
+
+
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
 
     parser = argparse.ArgumentParser("todo-list utility")
     parser.add_argument('--database', default='~/.todo-list.db', help='Database file to load/store')
     parser.add_argument('--cleanup-time', default=12, type=int, help='Duration in hours after which finished items are removed')
-    parser.add_argument('--redmine-link-prefix', '--issue-link-prefix', default=None, help='Prefix for links to Redmine bugtracker entries')
-    parser.add_argument('--jira-link-prefix', default=None, help='Prefix for links to Jira bugtracker entries')
+    parser.add_argument('--redmine-link-prefix', '--issue-link-prefix', default=None, help='(deprecated, replaced by --link) Prefix for links to Redmine bugtracker entries')
+    parser.add_argument('--jira-link-prefix', default=None, help='(deprecated, replaced by --link) Prefix for links to Jira bugtracker entries')
+    parser.add_argument('--link', nargs='*', type=link_argument, default=[], help="Pairs of links and trigger regex. The result of the trigger expression is inserted into the link. E.g. for Jira: 'http://jira.local/browse/<TRIGGER>,([A-Z]+-[0-9]+)'")
 
     args = parser.parse_args()
+
+    # for backward compatibility
+    if args.jira_link_prefix:
+        print("WARNING: '--jira-link-prefix' is deprecated and will be removed in a future version. Use the --link argument instead.")
+        args.link.append([args.jira_link_prefix + '<TRIGGER>', '([A-Z]+-[0-9]+)'])
+    if args.redmine_link_prefix:
+        print("WARNING: '--redmine-link-prefix' is deprecated and will be removed in a future version. Use the --link argument instead.")
+        args.link.append([args.redmine_link_prefix + '<TRIGGER>', '#([0-9]+)'])
+
+    # default links
+    args.link.append(['<TRIGGER>', '(http.?://[^ ]+)'])
 
     gui = MainWindow(args)
 
