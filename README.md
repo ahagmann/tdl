@@ -11,6 +11,7 @@ usage: todo-list utility [-h] [--database DATABASE]
                          [--cleanup-time CLEANUP_TIME]
                          [--redmine-link-prefix REDMINE_LINK_PREFIX]
                          [--jira-link-prefix JIRA_LINK_PREFIX]
+                         [--link [LINK [LINK ...]]]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -19,9 +20,16 @@ optional arguments:
                         Duration in hours after which finished items are
                         removed
   --redmine-link-prefix REDMINE_LINK_PREFIX, --issue-link-prefix REDMINE_LINK_PREFIX
-                        Prefix for links to Redmine bugtracker entries
+                        (deprecated, replaced by --link) Prefix for links to
+                        Redmine bugtracker entries
   --jira-link-prefix JIRA_LINK_PREFIX
-                        Prefix for links to Jira bugtracker entries
+                        (deprecated, replaced by --link) Prefix for links to
+                        Jira bugtracker entries
+  --link [LINK [LINK ...]]
+                        Pairs of links and trigger regex. The result of the
+                        trigger expression is inserted into the link. E.g. for
+                        Jira:
+                        'http://jira.local/browse/<TRIGGER>,([A-Z]+-[0-9]+)'
 ```
 
 ## Create and Close Items
