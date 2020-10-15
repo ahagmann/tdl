@@ -288,7 +288,7 @@ class Item(QtGui.QStandardItem):
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, args, parent=None):
-        QtWidgets.QMainWindow.__init__(self, parent)
+        super().__init__(parent)
         uic.loadUi('mainwindow.ui', self)
 
         self.do_not_store = False
@@ -313,6 +313,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.model.itemChanged.connect(self.on_item_changed)
         self.actionClose.triggered.connect(self.closeTab)
+        self.actionReload.triggered.connect(self.reload)
+        self.actionExit.triggered.connect(self.exit_request)
 
         icon = QtGui.QIcon(os.path.join(ROOT, 'icon.png'))
         self.sys_tray_icon = QtWidgets.QSystemTrayIcon(self)
@@ -387,6 +389,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateMenu()
         self.updateItemViews()
 
+    def reload(self):
+        self.model.clear()
+        while self.tabs.count() > 3:
+            self.tabs.removeTab(3)
+        self.load()
+
     def store(self):
         if self.do_not_store is True:
             return
@@ -446,8 +454,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tabs.removeTab(i)
 
     def closeEvent(self, event):
-        QtWidgets.QMainWindow.closeEvent(self, event)
         self.store()
+        super().closeEvent(event)
 
     def tray_action(self, reason):
         if reason == QtWidgets.QSystemTrayIcon.Trigger:
@@ -456,6 +464,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.show()
 
     def exit_request(self, *args):
+        self.sys_tray_icon.setVisible(False)
         self.close()
 
 
