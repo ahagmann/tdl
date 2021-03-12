@@ -226,6 +226,7 @@ class Item(QtGui.QStandardItem):
 
         # parse tags
         self.tags = re.findall(r'#([A-Za-z][A-Za-z0-9]*)', self.text())
+        self.tags = [tag.lower() for tag in self.tags]
 
         # parse links
         self.urls = []
@@ -376,7 +377,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         self.model.appendRow(item)
 
                     for i in db['tag_filter']:
-                        self.addTagTab(i)
+                        self.addTagTab(i.lower())
                 else:
                     raise "Unknown database version"
 
