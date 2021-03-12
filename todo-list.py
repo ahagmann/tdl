@@ -394,6 +394,7 @@ class MainWindow(QtWidgets.QMainWindow):
         while self.tabs.count() > 3:
             self.tabs.removeTab(3)
         self.load()
+        self.add_empty_item()
 
     def store(self):
         if self.do_not_store is True:
