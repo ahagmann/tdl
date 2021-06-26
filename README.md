@@ -12,6 +12,7 @@ usage: todo-list utility [-h] [--database DATABASE]
                          [--redmine-link-prefix REDMINE_LINK_PREFIX]
                          [--jira-link-prefix JIRA_LINK_PREFIX]
                          [--link [LINK [LINK ...]]]
+                         [--remote REMOTE]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -30,6 +31,8 @@ optional arguments:
                         trigger expression is inserted into the link. E.g. for
                         Jira:
                         'http://jira.local/browse/<TRIGGER>,([A-Z]+-[0-9]+)'
+  --remote REMOTE       Directory to push and pull versions from. For backups and
+                        synching
 ```
 
 ## Create and Close Items
@@ -68,8 +71,13 @@ E.g
 * *Jira* via `--link "http://jira.local/browse/<TRIGGER>,([A-Z]+-[0-9]+)"`
 * *Gerrit* via `--link "http://gerrit.local/#/c/<TRIGGER>,g([0-9]+)"`
 
-The corresponding webpacge is opended when you right click on the item.
+The corresponding webpage is opended when you right click on the item.
 
 ## URL References
 
 http(s) URLs are opened when you right click in the item.
+
+## Sync to Remote Directory
+
+If `--remote` is specified and points to an accesible directory, the database can be pushed to the remote location via menu entry `Remote/Push`. The last version in the remote directory can further by pulled via menu entry `Remote/Pull latest`.
+This can be used to backup the databse and to synchronize several tdl instances.

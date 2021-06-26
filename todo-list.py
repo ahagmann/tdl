@@ -46,6 +46,7 @@ import os
 from functools import partial
 import signal
 import shutil
+import glob
 
 
 ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -297,6 +298,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.database_temp_file = self.database_file + ".tmp"
         self.link_configs = args.link
         self.cleanup_time_h = args.cleanup_time
+        self.remote = args.remote
 
         self.model = QtGui.QStandardItemModel(self)
 
@@ -316,6 +318,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionClose.triggered.connect(self.closeTab)
         self.actionReload.triggered.connect(self.reload)
         self.actionExit.triggered.connect(self.exit_request)
+        self.actionPush.triggered.connect(lambda: self.remote_action("push"))
+        self.actionPull.triggered.connect(lambda: self.remote_action("pull"))
 
         icon = QtGui.QIcon(os.path.join(ROOT, 'icon.png'))
         self.sys_tray_icon = QtWidgets.QSystemTrayIcon(self)
@@ -418,6 +422,29 @@ class MainWindow(QtWidgets.QMainWindow):
         shutil.copy(self.database_temp_file, self.database_file)
         os.remove(self.database_temp_file)
 
+    def remote_action(self, action):
+        try:
+            if self.remote is None:
+                raise Exception("No remote specified")
+            if not os.path.isdir(self.remote):
+                raise Exception("Remote %s cannot be accesed" % self.remote)
+
+            if action == "push":
+                self.store()
+                version_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_todo-list.db")
+                shutil.copy2(self.database_file, os.path.join(self.remote, version_name))
+
+            if action == "pull":
+                files = glob.glob(self.remote + "/*_todo-list.db")
+                if len(files) == 0:
+                    raise Exception("No database found in %s" % self.remote)
+                files.sort()
+                shutil.copy2(files[-1], self.database_file)
+                self.reload()
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error during %s" % action, str(e))
+
     def updateMenu(self):
         tags = []
         for i in range(self.model.rowCount()):
@@ -495,6 +522,7 @@ if __name__ == "__main__":
     parser.add_argument('--redmine-link-prefix', '--issue-link-prefix', default=None, help='(deprecated, replaced by --link) Prefix for links to Redmine bugtracker entries')
     parser.add_argument('--jira-link-prefix', default=None, help='(deprecated, replaced by --link) Prefix for links to Jira bugtracker entries')
     parser.add_argument('--link', nargs='*', type=link_argument, default=[], help="Pairs of links and trigger regex. The result of the trigger expression is inserted into the link. E.g. for Jira: 'http://jira.local/browse/<TRIGGER>,([A-Z]+-[0-9]+)'")
+    parser.add_argument('--remote', help='Directory to push and pull versions from. For backups and synching')
 
     args = parser.parse_args()
 

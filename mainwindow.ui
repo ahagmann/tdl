@@ -61,7 +61,7 @@ border: 0;
      <x>0</x>
      <y>0</y>
      <width>509</width>
-     <height>27</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFilter">
@@ -84,8 +84,16 @@ border: 0;
     <addaction name="actionReload"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuRemote">
+    <property name="title">
+     <string>Remote</string>
+    </property>
+    <addaction name="actionPush"/>
+    <addaction name="actionPull"/>
+   </widget>
    <addaction name="menuFilter"/>
    <addaction name="menuReload"/>
+   <addaction name="menuRemote"/>
   </widget>
   <action name="actionClose">
    <property name="text">
@@ -105,6 +113,16 @@ border: 0;
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionPush">
+   <property name="text">
+    <string>Push</string>
+   </property>
+  </action>
+  <action name="actionPull">
+   <property name="text">
+    <string>Pull latest</string>
    </property>
   </action>
  </widget>
