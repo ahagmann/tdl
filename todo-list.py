@@ -21,22 +21,10 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-try:
-    from PyQt5 import sip
-except ImportError:
-    import sip
-sip.setapi('QString', 2)
-sip.setapi('QVariant', 2)
-
 import sys
-try:
-    from PyQt5 import QtCore, QtGui, uic
-    from PyQt5.QtCore import QSortFilterProxyModel
-    from PyQt5 import QtWidgets
-except ImportError:
-    from PyQt4 import QtCore, QtGui, uic
-    from PyQt4.QtGui import QSortFilterProxyModel
-    from PyQt4 import QtGui as QtWidgets
+from PyQt5 import QtCore, QtGui, uic
+from PyQt5.QtCore import QSortFilterProxyModel
+from PyQt5 import QtWidgets
 import time
 import datetime
 import re
