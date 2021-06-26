@@ -507,20 +507,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("todo-list utility")
     parser.add_argument('--database', default='~/.todo-list.db', help='Database file to load/store')
     parser.add_argument('--cleanup-time', default=12, type=int, help='Duration in hours after which finished items are removed')
-    parser.add_argument('--redmine-link-prefix', '--issue-link-prefix', default=None, help='(deprecated, replaced by --link) Prefix for links to Redmine bugtracker entries')
-    parser.add_argument('--jira-link-prefix', default=None, help='(deprecated, replaced by --link) Prefix for links to Jira bugtracker entries')
     parser.add_argument('--link', nargs='*', type=link_argument, default=[], help="Pairs of links and trigger regex. The result of the trigger expression is inserted into the link. E.g. for Jira: 'http://jira.local/browse/<TRIGGER>,([A-Z]+-[0-9]+)'")
     parser.add_argument('--remote', help='Directory to push and pull versions from. For backups and synching')
 
     args = parser.parse_args()
-
-    # for backward compatibility
-    if args.jira_link_prefix:
-        print("WARNING: '--jira-link-prefix' is deprecated and will be removed in a future version. Use the --link argument instead.")
-        args.link.append([args.jira_link_prefix + '<TRIGGER>', '([A-Z]+-[0-9]+)'])
-    if args.redmine_link_prefix:
-        print("WARNING: '--redmine-link-prefix' is deprecated and will be removed in a future version. Use the --link argument instead.")
-        args.link.append([args.redmine_link_prefix + '<TRIGGER>', '#([0-9]+)'])
 
     # default links
     args.link.append(['<TRIGGER>', '(http.?://[^ ]+)'])

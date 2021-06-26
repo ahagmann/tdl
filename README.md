@@ -9,8 +9,6 @@ ToDo Lists as I had on paper...
 >todo-list.py --help
 usage: todo-list utility [-h] [--database DATABASE]
                          [--cleanup-time CLEANUP_TIME]
-                         [--redmine-link-prefix REDMINE_LINK_PREFIX]
-                         [--jira-link-prefix JIRA_LINK_PREFIX]
                          [--link [LINK [LINK ...]]]
                          [--remote REMOTE]
 
@@ -20,12 +18,6 @@ optional arguments:
   --cleanup-time CLEANUP_TIME
                         Duration in hours after which finished items are
                         removed
-  --redmine-link-prefix REDMINE_LINK_PREFIX, --issue-link-prefix REDMINE_LINK_PREFIX
-                        (deprecated, replaced by --link) Prefix for links to
-                        Redmine bugtracker entries
-  --jira-link-prefix JIRA_LINK_PREFIX
-                        (deprecated, replaced by --link) Prefix for links to
-                        Jira bugtracker entries
   --link [LINK [LINK ...]]
                         Pairs of links and trigger regex. The result of the
                         trigger expression is inserted into the link. E.g. for
