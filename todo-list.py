@@ -119,17 +119,20 @@ class DueQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         return item.due is not None
 
 
-class AllQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+class UntaggedQSortFilterProxyModel(SortQSortFilterProxyModelBase):
     def __init__(self, parent=None):
         SortQSortFilterProxyModelBase.__init__(self, parent)
 
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
 
-        if 'backlog' in item.tags:
-            return False
+        if item.empty is True:
+            return True
 
-        return True
+        if len(item.tags) == 0:
+            return True
+
+        return False
 
 
 class Tab(QtWidgets.QWidget):
@@ -143,7 +146,7 @@ class Tab(QtWidgets.QWidget):
         self.view.setSpacing(0)
 
         if filter is None:
-            self.model = AllQSortFilterProxyModel(self)
+            self.model = UntaggedQSortFilterProxyModel(self)
         elif filter == '_ISSUES':
             self.model = UrlQSortFilterProxyModel(self)
         elif filter == '_DUE':
@@ -290,8 +293,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.model = QtGui.QStandardItemModel(self)
 
-        all_tab = Tab(self.model, None, 'All', self)
-        self.tabs.addTab(all_tab, "All")
+        all_tab = Tab(self.model, None, 'Inbox', self)
+        self.tabs.addTab(all_tab, "Inbox")
 
         due_tab = Tab(self.model, '_DUE', 'Due', self)
         self.tabs.addTab(due_tab, "Due")
