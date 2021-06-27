@@ -136,7 +136,7 @@ class UntaggedQSortFilterProxyModel(SortQSortFilterProxyModelBase):
 
 
 class Tab(QtWidgets.QWidget):
-    def __init__(self, model, filter, name, parent=None):
+    def __init__(self, model, filter_proxy_model, name, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
         uic.loadUi('tab.ui', self)
 
@@ -145,14 +145,7 @@ class Tab(QtWidgets.QWidget):
 
         self.view.setSpacing(0)
 
-        if filter is None:
-            self.model = UntaggedQSortFilterProxyModel(self)
-        elif filter == '_ISSUES':
-            self.model = UrlQSortFilterProxyModel(self)
-        elif filter == '_DUE':
-            self.model = DueQSortFilterProxyModel(self)
-        else:
-            self.model = TagQSortFilterProxyModel(filter, self)
+        self.model = filter_proxy_model
         self.model.setSourceModel(model)
         self.view.setModel(self.model)
 
@@ -294,15 +287,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.model = QtGui.QStandardItemModel(self)
 
-        all_tab = Tab(self.model, None, 'Inbox', self)
+        all_tab = Tab(self.model, UntaggedQSortFilterProxyModel(self), 'Inbox', self)
         self.tabs.addTab(all_tab, "Inbox")
         self.special_tabs += 1
 
-        due_tab = Tab(self.model, '_DUE', 'Due', self)
+        due_tab = Tab(self.model, DueQSortFilterProxyModel(self), 'Due', self)
         self.tabs.addTab(due_tab, "Due")
         self.special_tabs += 1
 
-        issue_tab = Tab(self.model, '_ISSUES', "Issues", self)
+        issue_tab = Tab(self.model, UrlQSortFilterProxyModel(self), "Issues", self)
         self.tabs.addTab(issue_tab, "Issues")
         self.special_tabs += 1
 
@@ -478,7 +471,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.status_bar.setText("%d items" % (self.model.rowCount() - 1))
 
     def addTagTab(self, tag):
-        tab = Tab(self.model, tag, tag, self)
+        filter = TagQSortFilterProxyModel(tag, self)
+        tab = Tab(self.model, filter, tag, self)
         self.tabs.addTab(tab, tag)
 
         self.updateItemViews()
