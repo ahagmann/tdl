@@ -106,19 +106,6 @@ class UrlQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         return len(item.urls) > 0
 
 
-class DueQSortFilterProxyModel(SortQSortFilterProxyModelBase):
-    def __init__(self, parent=None):
-        SortQSortFilterProxyModelBase.__init__(self, parent)
-
-    def filterAcceptsRow(self, source_row, source_parent):
-        item = self.sourceModel().item(source_row)
-
-        if item.empty is True:
-            return True
-
-        return item.due is not None
-
-
 class UntaggedQSortFilterProxyModel(SortQSortFilterProxyModelBase):
     def __init__(self, parent=None):
         SortQSortFilterProxyModelBase.__init__(self, parent)
@@ -133,6 +120,32 @@ class UntaggedQSortFilterProxyModel(SortQSortFilterProxyModelBase):
             return True
 
         return False
+
+
+class TodayQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+    def __init__(self, parent=None):
+        SortQSortFilterProxyModelBase.__init__(self, parent)
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        item = self.sourceModel().item(source_row)
+
+        if item.empty is True:
+            return True
+
+        return item.today or item.overdue
+
+
+class Next7DaysQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+    def __init__(self, parent=None):
+        SortQSortFilterProxyModelBase.__init__(self, parent)
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        item = self.sourceModel().item(source_row)
+
+        if item.empty is True:
+            return True
+
+        return item.next_7_days
 
 
 class Tab(QtWidgets.QWidget):
@@ -242,6 +255,9 @@ class Item(QtGui.QStandardItem):
         due_dates = re.findall(r'@([0-9]+-[0-9]+)', self.text())
         brush = self.foreground()
         brush.setColor(QtGui.QColor(0, 0, 0))
+        self.overdue = False
+        self.today = False
+        self.next_7_days = False
         if len(due_dates) > 0:
             due_date = due_dates[0]
             year = datetime.datetime.now().year
@@ -253,13 +269,18 @@ class Item(QtGui.QStandardItem):
 
             self.due = time.mktime(due_date_day.timetuple())
 
-            # set color for item including dates
+            # set color and state for item including dates
             if self.checkState() != 2:
                 diff = self.due - time.mktime(today.timetuple())
                 if diff < 0:
                     brush.setColor(QtGui.QColor(255, 0, 0))
+                    self.overdue = True
                 elif diff < 3600 * 24:
                     brush.setColor(QtGui.QColor(255, 128, 0))
+                    self.today = True
+                elif diff < 3600 * 24 * 7:
+                    brush.setColor(QtGui.QColor(0, 102, 204))
+                    self.next_7_days = True
                 else:
                     brush.setColor(QtGui.QColor(0, 102, 204))
 
@@ -291,8 +312,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabs.addTab(all_tab, "Inbox")
         self.special_tabs += 1
 
-        due_tab = Tab(self.model, DueQSortFilterProxyModel(self), 'Due', self)
-        self.tabs.addTab(due_tab, "Due")
+        issue_tab = Tab(self.model, TodayQSortFilterProxyModel(self), "Today", self)
+        self.tabs.addTab(issue_tab, "Today")
+        self.special_tabs += 1
+
+        issue_tab = Tab(self.model, Next7DaysQSortFilterProxyModel(self), "Next 7 Days", self)
+        self.tabs.addTab(issue_tab, "Next 7 Days")
         self.special_tabs += 1
 
         issue_tab = Tab(self.model, UrlQSortFilterProxyModel(self), "Issues", self)
