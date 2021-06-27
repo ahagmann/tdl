@@ -290,17 +290,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.link_configs = args.link
         self.cleanup_time_h = args.cleanup_time
         self.remote = args.remote
+        self.special_tabs = 0
 
         self.model = QtGui.QStandardItemModel(self)
 
         all_tab = Tab(self.model, None, 'Inbox', self)
         self.tabs.addTab(all_tab, "Inbox")
+        self.special_tabs += 1
 
         due_tab = Tab(self.model, '_DUE', 'Due', self)
         self.tabs.addTab(due_tab, "Due")
+        self.special_tabs += 1
 
         issue_tab = Tab(self.model, '_ISSUES', "Issues", self)
         self.tabs.addTab(issue_tab, "Issues")
+        self.special_tabs += 1
 
         self.status_bar = QtWidgets.QLabel()
         self.statusBar.addPermanentWidget(self.status_bar)
@@ -392,8 +396,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def reload(self):
         self.model.clear()
-        while self.tabs.count() > 3:
-            self.tabs.removeTab(3)
+        while self.tabs.count() > self.special_tabs:
+            self.tabs.removeTab(self.special_tabs)
         self.load()
         self.add_empty_item()
 
@@ -409,7 +413,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 json_struct['database'].append({'text': item.text(), 'done_timestamp': item.done_timestamp})
 
         for i in range(self.tabs.count()):
-            if i > 2:
+            if i >= self.special_tabs:
                 json_struct['tag_filter'].append(self.tabs.widget(i).name)
 
         s = json.dumps(json_struct, sort_keys=True, indent=4, separators=(',', ': '))
@@ -481,7 +485,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def closeTab(self):
         i = self.tabs.currentIndex()
-        if i > 2:
+        if i >= self.special_tabs:
             self.tabs.removeTab(i)
 
     def closeEvent(self, event):
