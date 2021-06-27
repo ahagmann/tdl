@@ -467,9 +467,15 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.critical(self, "Error during %s" % action, str(e))
 
     def updateMenu(self):
+        open_tabs = []
+        for i in range(self.tabs.count()):
+            open_tabs.append(self.tabs.widget(i).name)
+
         tags = []
         for i in range(self.model.rowCount()):
-            tags += self.model.item(i).tags
+            for new_tag in self.model.item(i).tags:
+                if new_tag not in open_tabs:
+                    tags.append(new_tag)
         tags = sorted(list(set(tags)))
 
         self.menuAdd.clear()
@@ -501,11 +507,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabs.addTab(tab, tag)
 
         self.updateItemViews()
+        self.updateMenu()
 
     def closeTab(self):
         i = self.tabs.currentIndex()
         if i >= self.special_tabs:
             self.tabs.removeTab(i)
+        self.updateMenu()
 
     def closeEvent(self, event):
         self.store()
