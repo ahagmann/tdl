@@ -106,7 +106,7 @@ class UrlQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         return len(item.urls) > 0
 
 
-class UntaggedQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+class InboxQSortFilterProxyModel(SortQSortFilterProxyModelBase):
     def __init__(self, parent=None):
         SortQSortFilterProxyModelBase.__init__(self, parent)
 
@@ -117,6 +117,9 @@ class UntaggedQSortFilterProxyModel(SortQSortFilterProxyModelBase):
             return True
 
         if len(item.tags) == 0:
+            return True
+
+        if 'backlog' in item.tags and (item.today or item.overdue):
             return True
 
         return False
@@ -308,7 +311,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.model = QtGui.QStandardItemModel(self)
 
-        all_tab = Tab(self.model, UntaggedQSortFilterProxyModel(self), 'Inbox', self)
+        all_tab = Tab(self.model, InboxQSortFilterProxyModel(self), 'Inbox', self)
         self.tabs.addTab(all_tab, "Inbox")
         self.special_tabs += 1
 
