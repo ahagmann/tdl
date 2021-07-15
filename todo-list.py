@@ -418,6 +418,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tabs.removeTab(self.special_tabs)
         self.load()
         self.add_empty_item()
+        self.updateItemViews()
 
     def store(self):
         if self.do_not_store is True:
