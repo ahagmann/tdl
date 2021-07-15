@@ -299,6 +299,9 @@ class MainWindow(QtWidgets.QMainWindow):
         issue_tab = Tab(self.model, '_ISSUES', "Issues", self)
         self.tabs.addTab(issue_tab, "Issues")
 
+        self.status_bar = QtWidgets.QLabel()
+        self.statusBar.addPermanentWidget(self.status_bar)
+
         self.load()
         self.add_empty_item()
 
@@ -319,6 +322,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cleanup_timer.setInterval(10 * 60 * 1000)
         self.cleanup_timer.timeout.connect(self.cleanup)
         self.cleanup_timer.start()
+
+        self.updateItemViews()
 
     def add_empty_item(self):
         item = Item(self.link_configs)
@@ -421,14 +426,17 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.store()
                 version_name = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_todo-list.db")
                 shutil.copy2(self.database_file, os.path.join(self.remote, version_name))
+                self.statusBar.showMessage("Pushed to %s" % version_name, 3000)
 
             if action == "pull":
                 files = glob.glob(self.remote + "/*_todo-list.db")
                 if len(files) == 0:
                     raise Exception("No database found in %s" % self.remote)
                 files.sort()
-                shutil.copy2(files[-1], self.database_file)
+                remote_file = files[-1]
+                shutil.copy2(remote_file, self.database_file)
                 self.reload()
+                self.statusBar.showMessage("Pulled %s" % os.path.basename(remote_file), 3000)
 
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error during %s" % action, str(e))
@@ -458,6 +466,9 @@ class MainWindow(QtWidgets.QMainWindow):
             index = self.model.index(r, 0)
             item = self.model.itemFromIndex(index)
             item.updateState()
+
+        # update main window
+        self.status_bar.setText("%d items" % (self.model.rowCount() - 1))
 
     def addTagTab(self, tag):
         tab = Tab(self.model, tag, tag, self)

@@ -95,6 +95,7 @@ border: 0;
    <addaction name="menuReload"/>
    <addaction name="menuRemote"/>
   </widget>
+  <widget class="QStatusBar" name="statusBar"/>
   <action name="actionClose">
    <property name="text">
     <string>Close Current</string>
