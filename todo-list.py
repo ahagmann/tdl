@@ -323,9 +323,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabs.addTab(issue_tab, "Next 7 Days")
         self.special_tabs += 1
 
-        issue_tab = Tab(self.model, UrlQSortFilterProxyModel(self), "Issues", self)
-        self.tabs.addTab(issue_tab, "Issues")
-        self.special_tabs += 1
+        if args.issue_tab:
+            issue_tab = Tab(self.model, UrlQSortFilterProxyModel(self), "Issues", self)
+            self.tabs.addTab(issue_tab, "Issues")
+            self.special_tabs += 1
 
         self.status_bar = QtWidgets.QLabel()
         self.statusBar.addPermanentWidget(self.status_bar)
@@ -558,6 +559,7 @@ if __name__ == "__main__":
     parser.add_argument('--cleanup-time', default=12, type=int, help='Duration in hours after which finished items are removed')
     parser.add_argument('--link', nargs='*', type=link_argument, default=[], help="Pairs of links and trigger regex. The result of the trigger expression is inserted into the link. E.g. for Jira: 'http://jira.local/browse/<TRIGGER>,([A-Z]+-[0-9]+)'")
     parser.add_argument('--remote', help='Directory to push and pull versions from. For backups and synching')
+    parser.add_argument('--issue-tab', action='store_true', help='Show special tab for URLs and mentioned issues')
 
     args = parser.parse_args()
 
