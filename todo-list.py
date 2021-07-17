@@ -151,6 +151,38 @@ class Next7DaysQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         return item.next_7_days
 
 
+class AllWOEmptyQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+    def __init__(self, parent=None):
+        SortQSortFilterProxyModelBase.__init__(self, parent)
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        item = self.sourceModel().item(source_row)
+
+        if item.empty is True:
+            return False
+
+        return True
+
+
+class ActiveWOEmptyQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+    def __init__(self, parent=None):
+        SortQSortFilterProxyModelBase.__init__(self, parent)
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        item = self.sourceModel().item(source_row)
+
+        if item.empty is True:
+            return False
+
+        if 'backlog' in item.tags and not (item.today or item.overdue):
+            return False
+
+        if item.checkState() == 2:
+            return False
+
+        return True
+
+
 class Tab(QtWidgets.QWidget):
     def __init__(self, model, filter_proxy_model, name, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
@@ -310,6 +342,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.special_tabs = 0
 
         self.model = QtGui.QStandardItemModel(self)
+
+        self.all_filter = AllWOEmptyQSortFilterProxyModel()
+        self.all_filter.setSourceModel(self.model)
+        self.active_filter = ActiveWOEmptyQSortFilterProxyModel()
+        self.active_filter.setSourceModel(self.model)
 
         all_tab = Tab(self.model, InboxQSortFilterProxyModel(self), 'Inbox', self)
         self.tabs.addTab(all_tab, "Inbox")
@@ -504,7 +541,7 @@ class MainWindow(QtWidgets.QMainWindow):
             item.updateState()
 
         # update main window
-        self.status_bar.setText("%d items" % (self.model.rowCount() - 1))
+        self.status_bar.setText("%d/%d items" % (self.active_filter.rowCount(), self.all_filter.rowCount()))
 
     def addTagTab(self, tag):
         filter = TagQSortFilterProxyModel(tag, self)
