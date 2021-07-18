@@ -382,6 +382,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabs.setStyleSheet("QTabWidget::pane {border: 0;}")
         self.add_main_tab_view(self.tabs, "Projects")
         self.add_main_tab_item_view(self.model, AllQSortFilterProxyModel(self), "All")
+        self.add_main_tab_item_view(self.model, TagQSortFilterProxyModel("check", self), "Check")
+        self.add_main_tab_item_view(self.model, TagQSortFilterProxyModel("backlog", self), "Backlog")
 
         self.status_bar = QtWidgets.QLabel()
         self.statusBar.addPermanentWidget(self.status_bar)
@@ -395,7 +397,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionExit.triggered.connect(self.exit_request)
         self.actionPush.triggered.connect(lambda: self.remote_action("push"))
         self.actionPull.triggered.connect(lambda: self.remote_action("pull"))
-        self.actionShowAll.triggered.connect(lambda: self.main_tab_changed(len(self.main_tabs) - 1))
+        self.actionShowAll.triggered.connect(lambda: self.main_tab_changed(len(self.main_tabs) - 3))
+        self.actionShowCheck.triggered.connect(lambda: self.main_tab_changed(len(self.main_tabs) - 2))
+        self.actionShowBacklog.triggered.connect(lambda: self.main_tab_changed(len(self.main_tabs) - 1))
 
         icon = QtGui.QIcon(os.path.join(ROOT, 'icon.png'))
         self.sys_tray_icon = QtWidgets.QSystemTrayIcon(self)
@@ -438,16 +442,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainTabsStack.setCurrentIndex(tab)
 
         # enable/disable filter menue
-        projects_tab_index = len(self.main_tabs) - 2
+        projects_tab_index = len(self.main_tabs) - 4
         self.menuFilter.setEnabled(tab == projects_tab_index)
 
-        # show/hide "all" tab
-        all_tab_index = len(self.main_tabs) - 1
-        if tab == all_tab_index:
-            self.mainTabsList.item(all_tab_index).setHidden(False)
-            self.mainTabsList.setCurrentRow(all_tab_index)
-        else:
-            self.mainTabsList.item(all_tab_index).setHidden(True)
+        # show/hide "all", "check", and "backlog" tab
+        for i in range(3):
+            tab_index = len(self.main_tabs) - i - 1
+            if tab == tab_index:
+                self.mainTabsList.item(tab_index).setHidden(False)
+                self.mainTabsList.setCurrentRow(tab_index)
+            else:
+                self.mainTabsList.item(tab_index).setHidden(True)
 
     def add_main_tab_item_view(self, model, filter_proxy_model, name):
         view = ItemView(model, filter_proxy_model, name)
@@ -601,6 +606,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateMainTabItemCount("Next 7 Days")
         self.updateMainTabItemCount("Next Steps")
         self.updateMainTabItemCount("Issues")
+        self.updateMainTabItemCount("All")
+        self.updateMainTabItemCount("Check")
+        self.updateMainTabItemCount("Backlog")
         
         # update projects tab
         projects_item_count = 0
