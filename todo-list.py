@@ -90,6 +90,14 @@ class TagQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         return self.tag in item.tags
 
 
+class AllQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+    def __init__(self, parent=None):
+        SortQSortFilterProxyModelBase.__init__(self, parent)
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        return True
+
+
 class UrlQSortFilterProxyModel(SortQSortFilterProxyModelBase):
     def __init__(self, parent=None):
         SortQSortFilterProxyModelBase.__init__(self, parent)
@@ -183,10 +191,10 @@ class ActiveWOEmptyQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         return True
 
 
-class Tab(QtWidgets.QWidget):
+class ItemView(QtWidgets.QWidget):
     def __init__(self, model, filter_proxy_model, name, parent=None):
         QtWidgets.QWidget.__init__(self, parent)
-        uic.loadUi('tab.ui', self)
+        uic.loadUi('item_view.ui', self)
 
         self.name = name
         self.sourceModel = model
@@ -339,7 +347,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.link_configs = args.link
         self.cleanup_time_h = args.cleanup_time
         self.remote = args.remote
-        self.special_tabs = 0
+        self.main_tabs = {}
 
         self.model = QtGui.QStandardItemModel(self)
 
@@ -348,22 +356,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.active_filter = ActiveWOEmptyQSortFilterProxyModel()
         self.active_filter.setSourceModel(self.model)
 
-        all_tab = Tab(self.model, InboxQSortFilterProxyModel(self), 'Inbox', self)
-        self.tabs.addTab(all_tab, "Inbox")
-        self.special_tabs += 1
-
-        issue_tab = Tab(self.model, TodayQSortFilterProxyModel(self), "Today", self)
-        self.tabs.addTab(issue_tab, "Today")
-        self.special_tabs += 1
-
-        issue_tab = Tab(self.model, Next7DaysQSortFilterProxyModel(self), "Next 7 Days", self)
-        self.tabs.addTab(issue_tab, "Next 7 Days")
-        self.special_tabs += 1
-
+        self.add_main_tab_item_view(self.model, InboxQSortFilterProxyModel(self), "Inbox")
+        self.add_main_tab_item_view(self.model, TodayQSortFilterProxyModel(self), "Today")
+        self.add_main_tab_item_view(self.model, Next7DaysQSortFilterProxyModel(self), "Next 7 Days")
+        self.add_main_tab_item_view(self.model, TagQSortFilterProxyModel("do", self), "Next Steps")
         if args.issue_tab:
-            issue_tab = Tab(self.model, UrlQSortFilterProxyModel(self), "Issues", self)
-            self.tabs.addTab(issue_tab, "Issues")
-            self.special_tabs += 1
+            self.add_main_tab_item_view(self.model, InboxQSortFilterProxyModel(self), "Issues")
+        self.tabs = QtWidgets.QTabWidget()
+        self.tabs.setStyleSheet("QTabWidget::pane {border: 0;}")
+        self.add_main_tab_view(self.tabs, "Projects")
+        self.add_main_tab_item_view(self.model, AllQSortFilterProxyModel(self), "All")
 
         self.status_bar = QtWidgets.QLabel()
         self.statusBar.addPermanentWidget(self.status_bar)
@@ -377,6 +379,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actionExit.triggered.connect(self.exit_request)
         self.actionPush.triggered.connect(lambda: self.remote_action("push"))
         self.actionPull.triggered.connect(lambda: self.remote_action("pull"))
+        self.actionShowAll.triggered.connect(lambda: self.main_tab_changed(len(self.main_tabs) - 1))
 
         icon = QtGui.QIcon(os.path.join(ROOT, 'icon.png'))
         self.sys_tray_icon = QtWidgets.QSystemTrayIcon(self)
@@ -390,6 +393,56 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cleanup_timer.start()
 
         self.updateItemViews()
+
+        color = self.palette().window().color()
+        bg_color = "#%02x%02x%02x" % (color.red(), color.green(), color.blue())
+        color = self.palette().highlight().color()
+        hl_color = "#%02x%02x%02x" % (color.red(), color.green(), color.blue())
+
+        self.mainTabsList.setStyleSheet("""
+            QListWidget {
+                background-color: %s;
+                outline: 0;
+            }
+            QListWidget::item {
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+            QListWidget::item:selected {
+                background-color: %s;
+                border: none;
+            }
+            """ % (bg_color, hl_color))
+
+        self.mainTabsList.currentRowChanged.connect(self.main_tab_changed)
+        self.mainTabsList.setCurrentRow(0)
+
+    def main_tab_changed(self, tab):
+        # show tab
+        self.mainTabsStack.setCurrentIndex(tab)
+
+        # enable/disable filter menue
+        projects_tab_index = len(self.main_tabs) - 2
+        self.menuFilter.setEnabled(tab == projects_tab_index)
+
+        # show/hide "all" tab
+        all_tab_index = len(self.main_tabs) - 1
+        if tab == all_tab_index:
+            self.mainTabsList.item(all_tab_index).setHidden(False)
+            self.mainTabsList.setCurrentRow(all_tab_index)
+        else:
+            self.mainTabsList.item(all_tab_index).setHidden(True)
+
+    def add_main_tab_item_view(self, model, filter_proxy_model, name):
+        view = ItemView(model, filter_proxy_model, name)
+        self.add_main_tab_view(view, name)
+
+    def add_main_tab_view(self, view, name):
+        self.mainTabsStack.insertWidget(len(self.main_tabs), view)
+        list_item = QtWidgets.QListWidgetItem(name)
+        self.mainTabsList.addItem(list_item)
+
+        self.main_tabs[name] = {"list_item": list_item, "item_view": view}
 
     def add_empty_item(self):
         item = Item(self.link_configs)
@@ -455,8 +508,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def reload(self):
         self.model.clear()
-        while self.tabs.count() > self.special_tabs:
-            self.tabs.removeTab(self.special_tabs)
+        while self.tabs.count() > 0:
+            self.tabs.removeTab(0)
         self.load()
         self.add_empty_item()
         self.updateItemViews()
@@ -473,8 +526,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 json_struct['database'].append({'text': item.text(), 'done_timestamp': item.done_timestamp})
 
         for i in range(self.tabs.count()):
-            if i >= self.special_tabs:
-                json_struct['tag_filter'].append(self.tabs.widget(i).name)
+            json_struct['tag_filter'].append(self.tabs.widget(i).name)
 
         s = json.dumps(json_struct, sort_keys=True, indent=4, separators=(',', ': '))
         with open(self.database_temp_file, 'w') as f:
@@ -527,12 +579,24 @@ class MainWindow(QtWidgets.QMainWindow):
             action.triggered.connect(partial(self.addTagTab, tag))
 
     def updateItemViews(self):
+        # update main tabs
+        self.updateMainTabItemCount("Inbox")
+        self.updateMainTabItemCount("Today")
+        self.updateMainTabItemCount("Next 7 Days")
+        self.updateMainTabItemCount("Next Steps")
+        self.updateMainTabItemCount("Issues")
+        
+        # update projects tab
+        projects_item_count = 0
         for i in range(self.tabs.count()):
             self.tabs.widget(i).sort()
             c = self.tabs.widget(i).activeCount()
             n = self.tabs.widget(i).name
             label = "%s (%d)" % (n, c)
             self.tabs.setTabText(i, label)
+            projects_item_count += c
+
+        self.updateMainTabItemCount("Projects", projects_item_count)
 
         # update items
         for r in range(self.model.rowCount()):
@@ -543,9 +607,21 @@ class MainWindow(QtWidgets.QMainWindow):
         # update main window
         self.status_bar.setText("%d/%d items" % (self.active_filter.rowCount(), self.all_filter.rowCount()))
 
+    def updateMainTabItemCount(self, name, value=None):
+        if name in self.main_tabs:
+            if value is None:
+                view = self.main_tabs[name]["item_view"]
+                c = view.activeCount()
+            else:
+                c = value
+
+            list_item = self.main_tabs[name]["list_item"]
+            label = "%s (%d)" % (name, c)
+            list_item.setText(label)
+
     def addTagTab(self, tag):
         filter = TagQSortFilterProxyModel(tag, self)
-        tab = Tab(self.model, filter, tag, self)
+        tab = ItemView(self.model, filter, tag, self)
         self.tabs.addTab(tab, tag)
 
         self.updateItemViews()
@@ -553,9 +629,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def closeTab(self):
         i = self.tabs.currentIndex()
-        if i >= self.special_tabs:
-            self.tabs.removeTab(i)
+        self.tabs.removeTab(i)
         self.updateMenu()
+        self.updateItemViews()
 
     def closeEvent(self, event):
         self.store()

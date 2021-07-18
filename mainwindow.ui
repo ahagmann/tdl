@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>509</width>
-    <height>388</height>
+    <width>796</width>
+    <height>605</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -32,23 +32,100 @@
      <number>0</number>
     </property>
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout">
+     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,100">
+      <property name="spacing">
+       <number>0</number>
+      </property>
       <item>
-       <widget class="QTabWidget" name="tabs">
-        <property name="styleSheet">
-         <string notr="true">QTabWidget::pane {
-border: 0;
-}</string>
+       <widget class="QListWidget" name="mainTabsList">
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>0</height>
+         </size>
         </property>
-        <property name="tabShape">
-         <enum>QTabWidget::Rounded</enum>
+        <property name="baseSize">
+         <size>
+          <width>100</width>
+          <height>0</height>
+         </size>
         </property>
-        <property name="currentIndex">
-         <number>-1</number>
-        </property>
-        <property name="tabsClosable">
+        <property name="autoFillBackground">
          <bool>false</bool>
         </property>
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
+        </property>
+        <property name="lineWidth">
+         <number>0</number>
+        </property>
+        <property name="verticalScrollBarPolicy">
+         <enum>Qt::ScrollBarAlwaysOff</enum>
+        </property>
+        <property name="horizontalScrollBarPolicy">
+         <enum>Qt::ScrollBarAlwaysOff</enum>
+        </property>
+        <property name="sizeAdjustPolicy">
+         <enum>QAbstractScrollArea::AdjustToContents</enum>
+        </property>
+        <property name="autoScroll">
+         <bool>false</bool>
+        </property>
+        <property name="editTriggers">
+         <set>QAbstractItemView::NoEditTriggers</set>
+        </property>
+        <property name="showDropIndicator" stdset="0">
+         <bool>false</bool>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectItems</enum>
+        </property>
+        <property name="spacing">
+         <number>10</number>
+        </property>
+        <property name="uniformItemSizes">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QStackedWidget" name="mainTabsStack">
+        <property name="lineWidth">
+         <number>0</number>
+        </property>
+        <property name="currentIndex">
+         <number>1</number>
+        </property>
+        <widget class="QWidget" name="page_0">
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <item>
+           <widget class="QTabWidget" name="tabs">
+            <property name="styleSheet">
+             <string notr="true">QTabWidget::pane {
+border: 0;
+}</string>
+            </property>
+            <property name="tabShape">
+             <enum>QTabWidget::Rounded</enum>
+            </property>
+            <property name="currentIndex">
+             <number>-1</number>
+            </property>
+            <property name="tabsClosable">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="page_1"/>
+        <widget class="QWidget" name="page_2"/>
+        <widget class="QWidget" name="page_3"/>
+        <widget class="QWidget" name="page_4"/>
+        <widget class="QWidget" name="page_5"/>
        </widget>
       </item>
      </layout>
@@ -60,7 +137,7 @@ border: 0;
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>509</width>
+     <width>796</width>
      <height>22</height>
     </rect>
    </property>
@@ -82,6 +159,7 @@ border: 0;
      <string>Menu</string>
     </property>
     <addaction name="actionReload"/>
+    <addaction name="actionShowAll"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuRemote">
@@ -91,8 +169,8 @@ border: 0;
     <addaction name="actionPush"/>
     <addaction name="actionPull"/>
    </widget>
-   <addaction name="menuFilter"/>
    <addaction name="menuReload"/>
+   <addaction name="menuFilter"/>
    <addaction name="menuRemote"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
@@ -124,6 +202,11 @@ border: 0;
   <action name="actionPull">
    <property name="text">
     <string>Pull latest</string>
+   </property>
+  </action>
+  <action name="actionShowAll">
+   <property name="text">
+    <string>Show All</string>
    </property>
   </action>
  </widget>
