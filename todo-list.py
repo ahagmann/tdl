@@ -85,7 +85,12 @@ class TagQSortFilterProxyModel(SortQSortFilterProxyModelBase):
             return True
 
         if ('backlog' in item.tags) and (self.tag != 'backlog'):
-            return False
+            if not (item.today or item.overdue):
+                return False
+
+        if ('check' in item.tags) and (self.tag != 'check'):
+            if not (item.today or item.overdue):
+                return False
 
         return self.tag in item.tags
 
@@ -109,7 +114,12 @@ class UrlQSortFilterProxyModel(SortQSortFilterProxyModelBase):
             return True
 
         if 'backlog' in item.tags:
-            return False
+            if not (item.today or item.overdue):
+                return False
+
+        if 'check' in item.tags:
+            if not (item.today or item.overdue):
+                return False
 
         return len(item.urls) > 0
 
@@ -128,6 +138,9 @@ class InboxQSortFilterProxyModel(SortQSortFilterProxyModelBase):
             return True
 
         if 'backlog' in item.tags and (item.today or item.overdue):
+            return True
+
+        if 'check' in item.tags and (item.today or item.overdue):
             return True
 
         return False
@@ -183,6 +196,9 @@ class ActiveWOEmptyQSortFilterProxyModel(SortQSortFilterProxyModelBase):
             return False
 
         if 'backlog' in item.tags and not (item.today or item.overdue):
+            return False
+
+        if 'check' in item.tags and not (item.next_7_days or item.today or item.overdue):
             return False
 
         if item.checkState() == 2:
