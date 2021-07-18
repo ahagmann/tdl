@@ -160,6 +160,8 @@ border: 0;
     </property>
     <addaction name="actionReload"/>
     <addaction name="actionShowAll"/>
+    <addaction name="actionShowCheck"/>
+    <addaction name="actionShowBacklog"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuRemote">
@@ -207,6 +209,16 @@ border: 0;
   <action name="actionShowAll">
    <property name="text">
     <string>Show All</string>
+   </property>
+  </action>
+  <action name="actionShowCheck">
+   <property name="text">
+    <string>Show #check</string>
+   </property>
+  </action>
+  <action name="actionShowBacklog">
+   <property name="text">
+    <string>Show #backlog</string>
    </property>
   </action>
  </widget>
