@@ -422,8 +422,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainTabsStack.setCurrentIndex(tab)
 
         # enable/disable filter menue
-        do_tab_index = len(self.main_tabs) - 2
-        self.menuFilter.setEnabled(tab == do_tab_index)
+        projects_tab_index = len(self.main_tabs) - 2
+        self.menuFilter.setEnabled(tab == projects_tab_index)
 
         # show/hide "all" tab
         all_tab_index = len(self.main_tabs) - 1
@@ -586,17 +586,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateMainTabItemCount("Next Steps")
         self.updateMainTabItemCount("Issues")
         
-        # update next step tabs
-        next_step_item_count = 0
+        # update projects tab
+        projects_item_count = 0
         for i in range(self.tabs.count()):
             self.tabs.widget(i).sort()
             c = self.tabs.widget(i).activeCount()
             n = self.tabs.widget(i).name
             label = "%s (%d)" % (n, c)
             self.tabs.setTabText(i, label)
-            next_step_item_count += c
+            projects_item_count += c
 
-        self.updateMainTabItemCount("Projects", next_step_item_count)
+        self.updateMainTabItemCount("Projects", projects_item_count)
 
         # update items
         for r in range(self.model.rowCount()):
