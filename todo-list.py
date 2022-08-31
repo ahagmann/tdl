@@ -374,7 +374,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_main_tab_item_view(self.model, Next7DaysQSortFilterProxyModel(self), "Next 7 Days")
         self.add_main_tab_item_view(self.model, NextStepsQSortFilterProxyModel(self), "Next Steps")
         if args.issue_tab:
-            self.add_main_tab_item_view(self.model, InboxQSortFilterProxyModel(self), "Issues")
+            self.add_main_tab_item_view(self.model, UrlQSortFilterProxyModel(self), "Issues")
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.setStyleSheet("QTabWidget::pane {border: 0;}")
         self.add_main_tab_view(self.tabs, "Projects")
