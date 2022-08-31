@@ -625,17 +625,13 @@ class MainWindow(QtWidgets.QMainWindow):
             action.triggered.connect(partial(self.addTagTab, tag))
 
     def updateItemViews(self):
-        # update main tabs
-        self.updateMainTabItemCount("Inbox")
-        self.updateMainTabItemCount("Today")
-        self.updateMainTabItemCount("Next 7 Days")
-        self.updateMainTabItemCount("Next Steps")
-        self.updateMainTabItemCount("Issues")
-        self.updateMainTabItemCount("All")
-        self.updateMainTabItemCount("Check")
-        self.updateMainTabItemCount("Backlog")
-        
-        # update projects tab
+        # update items
+        for r in range(self.model.rowCount()):
+            index = self.model.index(r, 0)
+            item = self.model.itemFromIndex(index)
+            item.updateState()
+
+        # update projects tabs
         projects_item_count = 0
         for i in range(self.tabs.count()):
             self.tabs.widget(i).sort()
@@ -645,28 +641,26 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tabs.setTabText(i, label)
             projects_item_count += c
 
-        self.updateMainTabItemCount("Projects", projects_item_count)
-
-        # update items
-        for r in range(self.model.rowCount()):
-            index = self.model.index(r, 0)
-            item = self.model.itemFromIndex(index)
-            item.updateState()
+        # update main tabs
+        for tab in self.main_tabs.keys():
+            if tab == "Projects":
+                self.updateMainTabItemCount(tab, projects_item_count)
+            else:
+                self.updateMainTabItemCount(tab)
 
         # update main window
         self.status_bar.setText("%d/%d items" % (self.active_filter.rowCount(), self.all_filter.rowCount()))
 
     def updateMainTabItemCount(self, name, value=None):
-        if name in self.main_tabs:
-            if value is None:
-                view = self.main_tabs[name]["item_view"]
-                c = view.activeCount()
-            else:
-                c = value
+        if value is None:
+            view = self.main_tabs[name]["item_view"]
+            c = view.activeCount()
+        else:
+            c = value
 
-            list_item = self.main_tabs[name]["list_item"]
-            label = "%s (%d)" % (name, c)
-            list_item.setText(label)
+        list_item = self.main_tabs[name]["list_item"]
+        label = "%s (%d)" % (name, c)
+        list_item.setText(label)
 
     def addTagTab(self, tag):
         filter = TagQSortFilterProxyModel(tag, self)
