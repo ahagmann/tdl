@@ -46,10 +46,6 @@ def debug(s):
 
 
 class SortQSortFilterProxyModelBase(QSortFilterProxyModel):
-    def __init__(self, parent=None):
-        QSortFilterProxyModel.__init__(self, parent)
-        self.setDynamicSortFilter(True)
-
     def lessThan(self, index_a, index_b):
         item_a = self.sourceModel().itemFromIndex(index_a)
         item_b = self.sourceModel().itemFromIndex(index_b)
@@ -75,7 +71,7 @@ class SortQSortFilterProxyModelBase(QSortFilterProxyModel):
 
 class TagQSortFilterProxyModel(SortQSortFilterProxyModelBase):
     def __init__(self, tag, parent=None):
-        SortQSortFilterProxyModelBase.__init__(self, parent)
+        super().__init__(parent)
         self.tag = tag
 
     def filterAcceptsRow(self, source_row, source_parent):
@@ -96,9 +92,6 @@ class TagQSortFilterProxyModel(SortQSortFilterProxyModelBase):
 
 
 class NextStepsQSortFilterProxyModel(SortQSortFilterProxyModelBase):
-    def __init__(self, parent=None):
-        SortQSortFilterProxyModelBase.__init__(self, parent)
-
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
 
@@ -121,17 +114,11 @@ class NextStepsQSortFilterProxyModel(SortQSortFilterProxyModelBase):
 
 
 class AllQSortFilterProxyModel(SortQSortFilterProxyModelBase):
-    def __init__(self, parent=None):
-        SortQSortFilterProxyModelBase.__init__(self, parent)
-
     def filterAcceptsRow(self, source_row, source_parent):
         return True
 
 
 class UrlQSortFilterProxyModel(SortQSortFilterProxyModelBase):
-    def __init__(self, parent=None):
-        SortQSortFilterProxyModelBase.__init__(self, parent)
-
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
 
@@ -150,9 +137,6 @@ class UrlQSortFilterProxyModel(SortQSortFilterProxyModelBase):
 
 
 class InboxQSortFilterProxyModel(SortQSortFilterProxyModelBase):
-    def __init__(self, parent=None):
-        SortQSortFilterProxyModelBase.__init__(self, parent)
-
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
 
@@ -172,9 +156,6 @@ class InboxQSortFilterProxyModel(SortQSortFilterProxyModelBase):
 
 
 class TodayQSortFilterProxyModel(SortQSortFilterProxyModelBase):
-    def __init__(self, parent=None):
-        SortQSortFilterProxyModelBase.__init__(self, parent)
-
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
 
@@ -185,9 +166,6 @@ class TodayQSortFilterProxyModel(SortQSortFilterProxyModelBase):
 
 
 class Next7DaysQSortFilterProxyModel(SortQSortFilterProxyModelBase):
-    def __init__(self, parent=None):
-        SortQSortFilterProxyModelBase.__init__(self, parent)
-
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
 
@@ -198,9 +176,6 @@ class Next7DaysQSortFilterProxyModel(SortQSortFilterProxyModelBase):
 
 
 class AllWOEmptyQSortFilterProxyModel(SortQSortFilterProxyModelBase):
-    def __init__(self, parent=None):
-        SortQSortFilterProxyModelBase.__init__(self, parent)
-
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
 
@@ -211,9 +186,6 @@ class AllWOEmptyQSortFilterProxyModel(SortQSortFilterProxyModelBase):
 
 
 class ActiveWOEmptyQSortFilterProxyModel(SortQSortFilterProxyModelBase):
-    def __init__(self, parent=None):
-        SortQSortFilterProxyModelBase.__init__(self, parent)
-
     def filterAcceptsRow(self, source_row, source_parent):
         item = self.sourceModel().item(source_row)
 
