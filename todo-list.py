@@ -647,6 +647,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.updateMainTabItemCount(tab, projects_item_count)
             else:
                 self.updateMainTabItemCount(tab)
+                self.main_tabs[tab]["item_view"].sort()
 
         # update main window
         self.status_bar.setText("%d/%d items" % (self.active_filter.rowCount(), self.all_filter.rowCount()))
