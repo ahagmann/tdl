@@ -140,7 +140,7 @@ class InboxQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         if 'backlog' in item.tags and (item.today or item.overdue):
             return True
 
-        if 'check' in item.tags and (item.today or item.overdue):
+        if 'check' in item.tags and (item.today or item.overdue or item.due is None):
             return True
 
         return False
