@@ -1,5 +1,5 @@
 # tdl
-ToDo Lists as I had on paper...
+ToDo Lists as I had on paper extended by some GTD method (Getting Things Done [https://gettingthingsdone.com]) inspired features...
 
 ![alt text](tdl.png)
 
@@ -7,24 +7,23 @@ ToDo Lists as I had on paper...
 
 ```
 >todo-list.py --help
-usage: todo-list utility [-h] [--database DATABASE]
+usage: todo-list utility [-h] 
+                         [--database DATABASE]
                          [--cleanup-time CLEANUP_TIME]
-                         [--link [LINK [LINK ...]]]
+                         [--link [LINK ...]]
                          [--remote REMOTE]
+                         [--issue-tab]
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --database DATABASE   Database file to load/store
   --cleanup-time CLEANUP_TIME
-                        Duration in hours after which finished items are
-                        removed
-  --link [LINK [LINK ...]]
-                        Pairs of links and trigger regex. The result of the
-                        trigger expression is inserted into the link. E.g. for
-                        Jira:
-                        'http://jira.local/browse/<TRIGGER>,([A-Z]+-[0-9]+)'
-  --remote REMOTE       Directory to push and pull versions from. For backups and
-                        synching
+                        Duration in hours after which finished items are removed
+  --link [LINK ...]     Pairs of links and trigger regex. The result of the trigger expression is inserted into the link.
+                        E.g. for Jira: 'http://jira.local/browse/<TRIGGER>,([A-Z]+-[0-9]+)'
+  --remote REMOTE       Directory to push and pull versions from. For backups and synching
+  --issue-tab           Show special tab for URLs and mentioned issues
+
 ```
 
 ## Create and Close Items
@@ -32,14 +31,25 @@ optional arguments:
 Create a new item by double clicking the last line of a tab.
 An item is closed by checking the checkbox at the left side. It will be removed from the list after `--cleanup-time` seconds.
 
-## Hashtags and Tabs
+## Hashtags and Tabs and Project Tabs
 
-Hashtags are used to group items. You can add tabs based on hashtags via the *Filter* menu.
+Hashtags are used to group items. The following tags have a special GTD smeaning
+* #backlog items are only shown in backlog tab or if a specified date is reached
+* #check items are only shown in check tab or if a specified date is reached
+* #do marks next steps
 
-Special tabs:
+Groups are visualized via tabs. The following special GTD tabs are shown as menu bar on the left side.
+* *Inbox* shows items without any tag and #check items terminated today
+* *Today* shows all items with termination date today or in the past
+* *Next 7 Days* shows items, which termination date is within next 7 days, without today
+* *Next Steps* shows all #do items with termination date today, or which are unterminated
+* *Project* groups any custom tag in horizontal tabs, customizeable via *Filter* menu
+* *Issues* shows all items with a valid issue tracker reference
+
+Hidden special tabs, that can be shown temporary via main menu:
 * The *All* tab shows alls items
-* The *Due* tab summarizes items with a due date
-* The *Issues* tab shows items with a issue tracker reference
+* The *check* tab shows all items with a #check tag
+* The *backlog* tab shows all items with #backlog tag
 
 ## Due Dates
 
