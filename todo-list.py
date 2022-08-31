@@ -95,6 +95,31 @@ class TagQSortFilterProxyModel(SortQSortFilterProxyModelBase):
         return self.tag in item.tags
 
 
+class NextStepsQSortFilterProxyModel(SortQSortFilterProxyModelBase):
+    def __init__(self, parent=None):
+        SortQSortFilterProxyModelBase.__init__(self, parent)
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        item = self.sourceModel().item(source_row)
+
+        if item.empty is True:
+            return True
+
+        if 'backlog' in item.tags:
+            if not (item.today or item.overdue):
+                return False
+
+        if 'check' in item.tags:
+            if not (item.today or item.overdue):
+                return False
+
+        if 'do' in item.tags:
+            if item.due is None or item.today or item.overdue:
+                return True
+
+        return False
+
+
 class AllQSortFilterProxyModel(SortQSortFilterProxyModelBase):
     def __init__(self, parent=None):
         SortQSortFilterProxyModelBase.__init__(self, parent)
@@ -375,7 +400,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_main_tab_item_view(self.model, InboxQSortFilterProxyModel(self), "Inbox")
         self.add_main_tab_item_view(self.model, TodayQSortFilterProxyModel(self), "Today")
         self.add_main_tab_item_view(self.model, Next7DaysQSortFilterProxyModel(self), "Next 7 Days")
-        self.add_main_tab_item_view(self.model, TagQSortFilterProxyModel("do", self), "Next Steps")
+        self.add_main_tab_item_view(self.model, NextStepsQSortFilterProxyModel(self), "Next Steps")
         if args.issue_tab:
             self.add_main_tab_item_view(self.model, InboxQSortFilterProxyModel(self), "Issues")
         self.tabs = QtWidgets.QTabWidget()
