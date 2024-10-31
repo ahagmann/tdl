@@ -314,17 +314,21 @@ class Item(QtGui.QStandardItem):
         self.overdue = False
         self.today = False
         self.next_7_days = False
+        self.due = None
         if len(due_dates) > 0:
             due_date = due_dates[0]
             year = datetime.datetime.now().year
-            due_date_day = datetime.datetime.strptime(due_date, "%d-%m")
-            due_date_day = due_date_day.replace(year=year)
-            today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            if today - due_date_day > datetime.timedelta(30):    # shift to next year if date is older than one past month
-                due_date_day = due_date_day.replace(year=year + 1)
+            try:
+                due_date_day = datetime.datetime.strptime(f"{due_date}-{year}", "%d-%m-%Y")
+                today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                if today - due_date_day > datetime.timedelta(30):    # shift to next year if date is older than one past month
+                    due_date_day = due_date_day.replace(year=year + 1)
 
-            self.due = time.mktime(due_date_day.timetuple())
+                self.due = time.mktime(due_date_day.timetuple())
+            except ValueError as e:
+                self.due = None
 
+        if self.due is not None:
             # set color and state for item including dates
             if self.checkState() != 2:
                 diff = self.due - time.mktime(today.timetuple())
@@ -339,10 +343,7 @@ class Item(QtGui.QStandardItem):
                     self.next_7_days = True
                 else:
                     brush.setColor(QtGui.QColor(0, 102, 204))
-
-        else:
-            self.due = None
-
+            
         self.setForeground(brush)
 
     def __str__(self):
